@@ -30,6 +30,9 @@ const UserSchema = new mongoose.Schema({
     enum: ['student', 'admin'],
     default: 'student',
   },
+  bio: {
+    type: String,
+  },
 }, {
   timestamps: true,
 });

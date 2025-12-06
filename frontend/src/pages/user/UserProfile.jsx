@@ -52,56 +52,10 @@ const UserProfile = () => {
   const { userId } = useParams();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // In a real app, you'd fetch this data from your backend
   const { data, isLoading, error } = useQuery(['userProfile', userId], async () => {
-    // Mocking data since we don't have a backend endpoint
-    // const response = await axios.get(`/api/users/${userId}/profile`);
-    // return response.data;
-    return {
-      _id: userId,
-      username: 'AlexDoe',
-      email: 'alex.doe@example.com',
-      university: 'University of Technology',
-      department: 'Computer Science',
-      createdAt: '2024-01-15T10:00:00.000Z',
-      bio: 'Third-year Computer Science student passionate about open-source and collaborative learning. Focused on AI and web development.',
-      stats: {
-        points: 1250,
-        rank: 12,
-        uploads: 15,
-        downloads: 2300,
-        votesReceived: 450,
-        views: 8500,
-      },
-      achievements: [
-        { name: 'First Upload', icon: Upload, date: '2024-01-20', description: 'Uploaded your first paper.' },
-        { name: 'Prolific Uploader', icon: TrendingUp, date: '2024-03-10', description: 'Uploaded 10+ papers.' },
-        { name: 'Community Helper', icon: ThumbsUp, date: '2024-04-05', description: 'Received 100+ helpful votes.' },
-        { name: 'Top Contributor', icon: Star, date: '2024-05-01', description: 'Reached the top 10 on the leaderboard.' },
-        { name: 'Verified Contributor', icon: ShieldCheck, date: '2024-02-15', description: 'Had 5 papers verified by admins.' },
-      ],
-      uploadedPapers: Array.from({ length: 6 }, (_, i) => ({
-        _id: `paper${i}`,
-        title: `Advanced Algorithms Midterm ${2023 - i}`,
-        course: 'Advanced Algorithms',
-        courseCode: 'CS-401',
-        downloadCount: 150 + i * 20,
-        helpfulVotes: 30 + i * 5,
-      })),
-      recentActivity: [
-        { type: 'upload', content: 'Uploaded a new paper: "Neural Networks Final"', date: '2024-05-20T10:00:00Z', icon: Upload },
-        { type: 'vote', content: 'Voted "Helpful" on "Intro to Quantum Computing"', date: '2024-05-19T15:30:00Z', icon: ThumbsUp },
-        { type: 'comment', content: 'Commented on "Data Structures Assignment 3"', date: '2024-05-18T11:00:00Z', icon: MessageSquare },
-        { type: 'achievement', content: 'Earned the "Top Contributor" badge', date: '2024-05-01T09:00:00Z', icon: Award },
-      ],
-      progress: {
-        currentLevel: 'Contributor',
-        nextLevel: 'Expert',
-        pointsToNextLevel: 750,
-        currentProgress: 250,
-      }
-    };
-  });
+    const response = await axios.get(`/users/${userId}`);
+    return response.data;
+  }, { enabled: !!userId });
 
   const StatCard = ({ icon: Icon, label, value }) => (
     <div className="card p-4 flex items-center">
@@ -131,7 +85,32 @@ const UserProfile = () => {
   if (isLoading) return <div className="text-center p-12">Loading profile...</div>;
   if (error) return <div className="text-center p-12 text-red-500">Failed to load profile.</div>;
 
-  const { username, university, department, createdAt, bio, stats, achievements, uploadedPapers, recentActivity, progress } = data;
+  const { 
+    username, 
+    university, 
+    department, 
+    createdAt, 
+    bio, 
+    totalUploads = 0,
+    totalDownloads = 0,
+    totalViews = 0,
+    totalHelpfulVotes = 0,
+    points = 0,
+    rank = 'N/A',
+    achievements = [], 
+    uploadedPapers = [], 
+    recentActivity = [], 
+    progress = { currentLevel: 'N/A', nextLevel: 'N/A', currentProgress: 0, pointsToNextLevel: 1 } 
+  } = data || {};
+
+  const stats = {
+    rank,
+    points,
+    uploads: totalUploads,
+    downloads: totalDownloads,
+    votesReceived: totalHelpfulVotes,
+    views: totalViews,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -144,7 +123,7 @@ const UserProfile = () => {
                 <User className="h-16 w-16 text-primary-600" />
               </div>
               <span className="absolute bottom-0 right-2 bg-green-500 text-white rounded-full p-1 text-xs font-bold">
-                #{stats.rank}
+                #{stats?.rank || 'N/A'}
               </span>
             </div>
             <div className="md:ml-8 text-center md:text-left">
@@ -157,14 +136,14 @@ const UserProfile = () => {
               <p className="mt-4 text-gray-700 max-w-xl">{bio}</p>
             </div>
             <div className="md:ml-auto mt-6 md:mt-0 text-center">
-                <div className="text-4xl font-bold text-primary-600">{stats.points}</div>
+                <div className="text-4xl font-bold text-primary-600">{stats?.points || 0}</div>
                 <div className="text-sm font-medium text-gray-600">Contribution Points</div>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 flex items-center space-x-2 border-b border-gray-200 pb-2">
+        <div className="mb-6 flex items-center space-x-2 border-b border-gray-200 pb-2 overflow-x-auto">
           <TabButton tabName="overview" label="Overview" />
           <TabButton tabName="uploads" label={`Uploads (${uploadedPapers.length})`} />
           <TabButton tabName="achievements" label={`Achievements (${achievements.length})`} />
@@ -178,12 +157,12 @@ const UserProfile = () => {
               <div className="lg:col-span-2">
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                    <StatCard icon={Upload} label="Uploads" value={stats.uploads} />
-                    <StatCard icon={Download} label="Total Downloads" value={`${(stats.downloads / 1000).toFixed(1)}k`} />
-                    <StatCard icon={ThumbsUp} label="Votes Received" value={stats.votesReceived} />
-                    <StatCard icon={Eye} label="Paper Views" value={`${(stats.views / 1000).toFixed(1)}k`} />
-                    <StatCard icon={Award} label="Achievements" value={achievements.length} />
-                    <StatCard icon={TrendingUp} label="Rank" value={`#${stats.rank}`} />
+                    <StatCard icon={Upload} label="Uploads" value={stats?.uploads || 0} />
+                    <StatCard icon={Download} label="Total Downloads" value={`${((stats?.downloads || 0) / 1000).toFixed(1)}k`} />
+                    <StatCard icon={ThumbsUp} label="Votes Received" value={stats?.votesReceived || 0} />
+                    <StatCard icon={Eye} label="Paper Views" value={`${((stats?.views || 0) / 1000).toFixed(1)}k`} />
+                    <StatCard icon={Award} label="Achievements" value={achievements?.length || 0} />
+                    <StatCard icon={TrendingUp} label="Rank" value={`#${stats?.rank || 'N/A'}`} />
                 </div>
 
                 {/* Progress */}
@@ -200,7 +179,7 @@ const UserProfile = () => {
                         ></div>
                     </div>
                     <p className="text-center text-sm text-gray-600 mt-2">
-                        {progress.pointsToNextLevel - progress.currentProgress} points to reach {progress.nextLevel}
+                        {(progress.pointsToNextLevel - progress.currentProgress) > 0 ? `${progress.pointsToNextLevel - progress.currentProgress} points to reach ${progress.nextLevel}` : 'Max level reached!'}
                     </p>
                 </div>
               </div>
@@ -210,17 +189,22 @@ const UserProfile = () => {
                 <div className="card p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
                   <ul className="space-y-4">
-                    {recentActivity.map((activity, index) => (
-                      <li key={index} className="flex items-start">
-                        <div className="bg-gray-100 rounded-full p-2 mr-3">
-                            <activity.icon className="h-5 w-5 text-gray-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-800">{activity.content}</p>
-                          <p className="text-xs text-gray-500">{new Date(activity.date).toLocaleString()}</p>
-                        </div>
-                      </li>
-                    ))}
+                    {recentActivity && recentActivity.length > 0 ? (
+                      recentActivity.map((activity, index) => {
+                        const Icon = { upload: Upload, vote: ThumbsUp, comment: MessageSquare, achievement: Award }[activity.type] || GitCommit;
+                        return (
+                          <li key={index} className="flex items-start">
+                            <div className="bg-gray-100 rounded-full p-2 mr-3">
+                                <Icon className="h-5 w-5 text-gray-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-800">{activity.content}</p>
+                              <p className="text-xs text-gray-500">{new Date(activity.date).toLocaleString()}</p>
+                            </div>
+                          </li>
+                        );
+                      })
+                    ) : <p className="text-sm text-gray-500">No recent activity.</p>}
                   </ul>
                 </div>
               </div>
@@ -230,7 +214,7 @@ const UserProfile = () => {
           {activeTab === 'uploads' && (
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Uploaded Papers</h2>
-              {uploadedPapers.length > 0 ? (
+              {uploadedPapers && uploadedPapers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {uploadedPapers.map(paper => (
                     <PaperCard key={paper._id} paper={paper} />
@@ -250,18 +234,21 @@ const UserProfile = () => {
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Achievements & Badges</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {achievements.map(badge => (
-                  <div key={badge.name} className="card p-6 text-center flex flex-col items-center">
-                    <div className="bg-yellow-100 text-yellow-600 p-4 rounded-full mb-4">
-                      <badge.icon className="h-10 w-10" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900">{badge.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1 flex-grow">{badge.description}</p>
-                    <p className="text-xs text-gray-500 mt-3">
-                      Earned on {new Date(badge.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
+                {achievements && achievements.length > 0 ? (
+                  achievements.map(badge => {
+                    const Icon = { 'First Upload': Upload, 'Prolific Uploader': TrendingUp, 'Community Helper': ThumbsUp, 'Top Contributor': Star, 'Verified Contributor': ShieldCheck }[badge.name] || Award;
+                    return (
+                      <div key={badge.name} className="card p-6 text-center flex flex-col items-center">
+                        <div className="bg-yellow-100 text-yellow-600 p-4 rounded-full mb-4">
+                          <Icon className="h-10 w-10" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">{badge.name}</h3>
+                        <p className="text-sm text-gray-600 mt-1 flex-grow">{badge.description}</p>
+                        <p className="text-xs text-gray-500 mt-3">Earned on {new Date(badge.date).toLocaleDateString()}</p>
+                      </div>
+                    );
+                  })
+                ) : <p className="text-sm text-gray-500 col-span-full text-center">No achievements yet.</p>}
               </div>
             </div>
           )}

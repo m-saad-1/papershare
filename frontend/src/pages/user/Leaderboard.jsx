@@ -5,25 +5,9 @@ import { Crown, User, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Leaderboard = ({ currentUser }) => {
-  // In a real app, you'd fetch this data from your backend
   const { data: leaderboardData, isLoading } = useQuery('leaderboard', async () => {
-    // Mocking data
-    // const response = await axios.get('/api/leaderboard?limit=10');
-    // return response.data;
-    return [
-      { _id: 'user1', username: 'JaneSmith', points: 2500, rank: 1 },
-      { _id: 'user2', username: 'MikeLee', points: 2250, rank: 2 },
-      { _id: 'user3', username: 'ChrisGreen', points: 2100, rank: 3 },
-      { _id: 'user4', username: 'SarahJones', points: 1980, rank: 4 },
-      { _id: 'user5', username: 'TomBrown', points: 1850, rank: 5 },
-      { _id: 'user6', username: 'EmilyWhite', points: 1700, rank: 6 },
-      { _id: 'user7', username: 'DavidBlack', points: 1650, rank: 7 },
-      { _id: 'user8', username: 'LauraGray', points: 1500, rank: 8 },
-      { _id: 'user9', username: 'BrianKing', points: 1400, rank: 9 },
-      { _id: 'user10', username: 'OliviaHill', points: 1350, rank: 10 },
-      { _id: 'user11', username: 'SamWilson', points: 1300, rank: 11 },
-      { _id: 'user12', username: 'AlexDoe', points: 1250, rank: 12 },
-    ];
+    const response = await axios.get('/users/leaderboard?limit=20');
+    return response.data;
   });
 
   const getRankColor = (rank) => {
@@ -44,7 +28,7 @@ const Leaderboard = ({ currentUser }) => {
         <div>Loading leaderboard...</div>
       ) : (
         <div className="space-y-3">
-          {leaderboardData.map((user, index) => (
+          {leaderboardData?.map((user, index) => (
             <div
               key={user._id}
               className={`flex items-center p-4 rounded-lg transition-all duration-200 ${
