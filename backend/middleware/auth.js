@@ -36,3 +36,25 @@ exports.admin = (req, res, next) => {
     res.status(403).json({ message: 'Not authorized as an admin' });
   }
 };
+
+exports.protectSocket = async (socket, next) => {
+  const token = socket.handshake.auth?.token;
+
+  if (!token) {
+    return next(new Error('Authentication error: No token provided.'));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.user.id).select('-password');
+
+    if (!user) {
+      return next(new Error('Authentication error: User not found.'));
+    }
+
+    socket.user = user;
+    next();
+  } catch (err) {
+    return next(new Error('Authentication error: Token is not valid.'));
+  }
+};

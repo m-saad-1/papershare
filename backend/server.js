@@ -2,14 +2,10 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const fs = require('fs');
+const { initSocket } = require('./socket/socket.js');
 const path = require('path');
-
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
+const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 // Load env vars
 dotenv.config();
@@ -23,14 +19,46 @@ const app = express();
 app.use(express.json());
 
 // Enable CORS
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true
+}));
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(uploadsDir));
+
+// Create HTTP server and initialize Socket.IO
+const http = require('http');
+const server = http.createServer(app);
+initSocket(server);
 
 // Mount routers
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/papers', require('./routes/papers'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/papers', require('./routes/paperRoutes'));
 app.use('/api/admin', require('./routes/admin'));
-app.use('/api/users', require('./routes/users'));
+app.use('/api/messages', require('./routes/messages')); // Added for chat functionality
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Something went wrong!',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server started on port ${PORT}`));

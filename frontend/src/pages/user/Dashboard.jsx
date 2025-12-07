@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { useAuth } from '@/context/AuthContext.jsx';
@@ -22,6 +22,8 @@ import {
   Key,
   EyeOff,
 } from 'lucide-react';
+import { Crown, TrendingUp } from 'lucide-react';
+
 
 const Dashboard = () => {
   const { user, logout, token, isAdmin } = useAuth(); // 1. Get token from AuthContext
@@ -67,6 +69,16 @@ const Dashboard = () => {
       enabled: !!token && activeTab === 'downloads',
     }
   );
+
+  const { data: leaderboardData, isLoading: isLoadingLeaderboard } = useQuery('leaderboard-widget', async () => {
+    const response = await axios.get('/users/leaderboard?limit=5');
+    return response.data;
+  }, {
+    enabled: activeTab === 'overview',
+  });
+
+
+
 
   const stats = {
     totalUploads: isAdmin ? papers?.papers?.length || 0 : papers?.length || 0,
@@ -215,6 +227,13 @@ const Dashboard = () => {
 
   const getVisibilityText = (visibility) => {
     return visibility === 'private' ? 'Make Public' : 'Make Private';
+  };
+
+  const getRankColor = (rank) => {
+    if (rank === 1) return 'text-yellow-500';
+    if (rank === 2) return 'text-gray-400';
+    if (rank === 3) return 'text-orange-400';
+    return 'text-gray-500';
   };
 
   return (
@@ -524,6 +543,46 @@ const Dashboard = () => {
                     </Link>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'overview' && (
+              <div className="card p-6 mt-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                  <TrendingUp className="h-6 w-6 mr-2 text-primary-600" />
+                  Top Contributors
+                </h2>
+                {isLoadingLeaderboard ? (
+                  <div>Loading...</div>
+                ) : leaderboardData && leaderboardData.length > 0 ? (
+                  <div className="space-y-3">
+                    {leaderboardData.map((u) => (
+                      <div
+                        key={u._id}
+                        className={`flex items-center p-3 rounded-lg transition-all duration-200 ${
+                          user?._id === u._id
+                            ? 'bg-primary-50 border border-primary-200'
+                            : 'bg-gray-50'
+                        }`}
+                      >
+                        <div className={`w-8 text-lg font-bold ${getRankColor(u.rank)}`}>
+                          #{u.rank}
+                        </div>
+                        <div className="flex items-center flex-1 ml-3">
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                            {u.rank === 1 ? <Crown className="h-5 w-5 text-yellow-500" /> : <User className="h-5 w-5 text-gray-500" />}
+                          </div>
+                          <span className="font-semibold text-gray-800">{u.username}</span>
+                        </div>
+                        <div className="text-md font-bold text-primary-600">
+                          {u.points.toLocaleString()} pts
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div>No contributors yet.</div>
+                )}
               </div>
             )}
 

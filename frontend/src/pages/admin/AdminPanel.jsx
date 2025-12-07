@@ -67,6 +67,15 @@ const AdminPanel = () => {
     }
   );
 
+  const { data: allPapersData, isLoading: isLoadingAllPapers, isError: isErrorAllPapers } = useQuery(
+    ['all-papers', activeTab],
+    async () => {
+      const response = await axios.get('/admin/papers/all');
+      return response.data;
+    },
+    { enabled: activeTab === 'allPapers' }
+  );
+
   const updatePaperStatus = useMutation(
     ({ paperId, status }) => axios.patch(`/admin/papers/${paperId}/status`, { status }),
     {
@@ -93,7 +102,7 @@ const AdminPanel = () => {
     (paperId) => axios.delete(`/admin/papers/${paperId}`),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(['pending-papers', 'reported-papers', 'admin-stats']);
+        queryClient.invalidateQueries(['pending-papers', 'reported-papers', 'admin-stats', 'all-papers']);
         toast.success('Paper deleted successfully!');
       },
       onError: () => toast.error('Failed to delete paper.'),
@@ -136,12 +145,20 @@ const AdminPanel = () => {
       paper.uploader.username.toLowerCase().includes(paperSearch.toLowerCase())
     ), [pendingPapers, paperSearch]
   );
+  
+  const filteredAllPapers = useMemo(() =>
+    allPapersData?.papers?.filter(paper =>
+      paper.title.toLowerCase().includes(paperSearch.toLowerCase()) ||
+      paper.uploader.username.toLowerCase().includes(paperSearch.toLowerCase())
+    ), [allPapersData, paperSearch]
+  );
 
   const tabs = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
     { id: 'pending', name: 'Pending Review', icon: FileText },
     { id: 'reports', name: 'Reported Content', icon: Flag },
     { id: 'users', name: 'User Management', icon: Users },
+    { id: 'allPapers', name: 'All Papers', icon: FileText },
   ];
 
   return (

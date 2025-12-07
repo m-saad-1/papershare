@@ -33,6 +33,10 @@ const UserSchema = new mongoose.Schema({
   bio: {
     type: String,
   },
+  uploadCount: { // Added for leaderboard
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: true,
 });
@@ -46,4 +50,4 @@ UserSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.models.User || mongoose.model('User', UserSchema);
