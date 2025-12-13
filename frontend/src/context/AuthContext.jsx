@@ -1,10 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '@/apiClient';
 import toast from 'react-hot-toast';
-
-// Configure axios baseURL globally, outside of any component lifecycle
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const AuthContext = createContext();
 
@@ -21,22 +17,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
-  // Set axios authorization header
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  }, [token]);
+  const processUserData = (userData) => {
+    let processedData = { ...userData };
+
+
+
+    // Ensure other fields have default values
+    processedData.semester = processedData.semester || '';
+    processedData.batch = processedData.batch || '';
+
+    return processedData;
+  };
 
   // Check if user is logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
       if (token) {
         try {
-          const response = await axios.get('/auth/me');
-          setUser(response.data.user);
+          const response = await apiClient.get('/auth/me');
+          setUser(processUserData(response.data.user));
         } catch (error) {
           console.error('Auth check failed:', error);
           localStorage.removeItem('token');
@@ -51,14 +50,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/auth/login', { email, password });
+      const response = await apiClient.post('/auth/login', { email, password });
       const { token: newToken, user: userData } = response.data;
-      
+
       localStorage.setItem('token', newToken);
       setToken(newToken);
-      setUser(userData);
+      setUser(processUserData(userData));
       toast.success('Welcome back!');
-      
+
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';
@@ -69,12 +68,12 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('/auth/register', userData);
+      const response = await apiClient.post('/auth/register', userData);
       const { token: newToken, user: newUserData } = response.data;
-      
+
       localStorage.setItem('token', newToken);
       setToken(newToken);
-      setUser(newUserData);
+      setUser(processUserData(newUserData));
       toast.success('Account created successfully!');
       return { success: true };
     } catch (error) {
@@ -88,9 +87,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
     toast.success('Logged out successfully');
   };
+
+
+  const updateUserContext = (newUserData) => {
+    setUser(processUserData(newUserData));
+  };
+
 
   const value = {
     user,
@@ -100,7 +104,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
-    token
+    token,
+    updateUserContext
   };
 
   return (

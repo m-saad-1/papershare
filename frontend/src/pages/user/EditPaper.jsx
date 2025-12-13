@@ -37,7 +37,7 @@ const EditPaper = () => {
   const { data: paperData, isLoading, isError } = useQuery(
     ['paper', paperId],
     async () => {
-      const response = await axios.get(`/api/papers/${paperId}`);
+      const response = await axios.get(`/papers/${paperId}`);
       return response.data;
     },
     {
@@ -69,7 +69,7 @@ const EditPaper = () => {
             ...updatedPaper,
             tags: updatedPaper.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
           };
-      return axios.patch(`/api/papers/${paperId}`, dataToSend)
+      return axios.patch(`/papers/${paperId}`, dataToSend)
     },
     {
       onSuccess: () => {

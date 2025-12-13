@@ -9,16 +9,16 @@ const router = express.Router();
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
+console.log('Defining POST /register');
 router.post('/register', async (req, res) => {
-  const { username, email, password, university, department } = req.body;
-
+      const { username, email, password, university, department, semester, batch } = req.body;
   try {
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    user = new User({ username, email, password, university, department });
+    user = new User({ username, email, password, university, department, semester, batch });
 
     await user.save();
 
@@ -35,6 +35,7 @@ router.post('/register', async (req, res) => {
 // @desc    Authenticate user & get token
 // @route   POST /api/auth/login
 // @access  Public
+console.log('Defining POST /login');
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -62,6 +63,7 @@ router.post('/login', async (req, res) => {
 // @desc    Get logged in user
 // @route   GET /api/auth/me
 // @access  Private
+console.log('Defining GET /me');
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
@@ -75,6 +77,7 @@ router.get('/me', protect, async (req, res) => {
 // @desc    Change user password
 // @route   POST /api/auth/change-password
 // @access  Private
+console.log('Defining POST /change-password');
 router.post('/change-password', protect, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 

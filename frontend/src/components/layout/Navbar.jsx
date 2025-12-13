@@ -9,7 +9,8 @@ import {
   Menu,
   X,
   BookOpen,
-  Shield
+  Shield,
+  MessageSquare
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -80,19 +81,19 @@ const Navbar = () => {
                 {/* Desktop user menu */}
                 <div className="hidden md:flex items-center space-x-3">
                   <Link
+                    to="/messages"
+                    className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-primary-600 transition-colors duration-200"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Chat</span>
+                  </Link>
+                  <Link
                     to="/dashboard"
                     className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-primary-600 transition-colors duration-200"
                   >
                     <User className="h-4 w-4" />
                     <span className="font-medium">{user.username}</span>
                   </Link>
-                  <button
-                    onClick={logout}
-                    className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:text-error-600 transition-colors duration-200"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
-                  </button>
                 </div>
 
                 {/* Mobile menu button */}
@@ -137,6 +138,14 @@ const Navbar = () => {
               >
                 <User className="h-5 w-5 mr-3" />
                 Dashboard
+              </Link>
+              <Link
+                to="/messages"
+                className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <MessageSquare className="h-5 w-5 mr-3" />
+                Chat
               </Link>
               {navigation.map((item) => {
                 if (item.requiresAuth && !user) return null;

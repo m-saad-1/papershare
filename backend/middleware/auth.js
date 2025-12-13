@@ -1,35 +1,48 @@
 const jwt = require('jsonwebtoken');
+const asyncHandler = require('express-async-handler');
 const User = require('../models/user');
 
-exports.protect = async (req, res, next) => {
+/**
+ * @desc    Middleware to protect routes
+ * @note    Checks for a valid JWT in the Authorization header
+ */
+const protect = asyncHandler(async (req, res, next) => {
   let token;
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
+  // Check for token in the Authorization header
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      // Get token from header (e.g., "Bearer <token>")
+      token = req.headers.authorization.split(' ')[1];
+
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Get user from the token's payload and attach to request object
+      req.user = await User.findById(decoded.user.id).select('-password');
+
+      next(); // Proceed to the next middleware/route handler
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      res.status(401);
+      throw new Error('Not authorized, token failed');
+    }
   }
 
   if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
+    res.status(401);
+    throw new Error('Not authorized, no token');
   }
+});
 
-  try {
-    console.log('Token:', token);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Decoded:', decoded);
-    req.user = await User.findById(decoded.user.id).select('-password');
-    console.log('User:', req.user);
-    if (!req.user) {
-      console.log('User not found');
-      return res.status(401).json({ message: 'Not authorized, user not found' });
-    }
-    next();
-  } catch (err) {
-    console.error('Protect middleware error:', err);
-    return res.status(401).json({ message: 'Not authorized, token failed' });
-  }
-};
-
-exports.admin = (req, res, next) => {
+/**
+ * @desc    Middleware to check for admin role
+ * @note    Assumes that the protect middleware has been used before
+ */
+const admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
@@ -37,24 +50,4 @@ exports.admin = (req, res, next) => {
   }
 };
 
-exports.protectSocket = async (socket, next) => {
-  const token = socket.handshake.auth?.token;
-
-  if (!token) {
-    return next(new Error('Authentication error: No token provided.'));
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.user.id).select('-password');
-
-    if (!user) {
-      return next(new Error('Authentication error: User not found.'));
-    }
-
-    socket.user = user;
-    next();
-  } catch (err) {
-    return next(new Error('Authentication error: Token is not valid.'));
-  }
-};
+module.exports = { protect, admin };

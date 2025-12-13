@@ -1,5 +1,6 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const Message = require('../models/Message');
 
 let io;
 const userSockets = new Map(); // Maps userId to socketId
@@ -37,6 +38,24 @@ const initSocket = (server) => {
     const userId = socket.user.id;
     console.log(`A user connected: ${userId} with socketId: ${socket.id}`);
     userSockets.set(userId, socket.id);
+
+    socket.on('sendMessage', async (message) => {
+      try {
+        const newMessage = new Message({
+          sender: message.sender,
+          recipient: message.recipient,
+          text: message.text,
+        });
+        await newMessage.save();
+
+        const recipientSocketId = getRecipientSocketId(message.recipient);
+        if (recipientSocketId) {
+          io.to(recipientSocketId).emit('receiveMessage', newMessage);
+        }
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
+    });
 
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${userId}`);

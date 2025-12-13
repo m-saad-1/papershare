@@ -55,29 +55,29 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Support - UPDATED WITH CORRECT LINKS */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Support</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
+                <Link to="/help" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
                   Help Center
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
+                <Link to="/contact" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
                   Contact Us
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
+                <Link to="/privacy-policy" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
+                <Link to="/terms-of-service" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
                   Terms of Service
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

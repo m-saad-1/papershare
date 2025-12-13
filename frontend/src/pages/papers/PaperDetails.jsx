@@ -2,8 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
-import axios from 'axios';
 import { useAuth } from '@/context/AuthContext.jsx';
+import apiClient from '@/apiClient';
 import {
   Download,
   Star,
@@ -32,18 +32,34 @@ const PaperDetails = () => {
   const { data: paper, isLoading } = useQuery(
     ['paper', id],
     async () => {
-      const response = await axios.get(`/papers/${id}`);
+      const response = await apiClient.get(`/papers/${id}`);
       return response.data;
     },
     {
       enabled: !!id,
+      select: (data) => {
+        if (data.uploader?.profilePhoto && !data.uploader.profilePhoto.startsWith('http')) {
+          const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '') || 'http://localhost:5000';
+          const photoPath = data.uploader.profilePhoto.startsWith('/')
+            ? data.uploader.profilePhoto.slice(1)
+            : data.uploader.profilePhoto;
+          return {
+            ...data,
+            uploader: {
+              ...data.uploader,
+              profilePhoto: `${apiBaseUrl}/${photoPath}`,
+            },
+          };
+        }
+        return data;
+      },
     }
   );
 
   const viewIncremented = React.useRef(false);
 
   const { mutate: incrementView } = useMutation(
-    () => axios.put(`/papers/${id}/view`),
+    () => apiClient.put(`/papers/${id}/view`),
     {
       onMutate: async () => {
         // Cancel any outgoing refetches so they don't overwrite our optimistic update
@@ -95,7 +111,7 @@ const PaperDetails = () => {
   }, [paper, isAuthenticated, user, incrementView]);
 
   const downloadMutation = useMutation(
-    () => axios.get(`/papers/${id}/download`, { responseType: 'blob' }),
+    () => apiClient.get(`/papers/${id}/download`, { responseType: 'blob' }),
     {
       onSuccess: (response) => {
         // Create blob link and trigger download
@@ -118,7 +134,7 @@ const PaperDetails = () => {
   );
 
   const reportMutation = useMutation(
-    ({ reason }) => axios.post(`/papers/${id}/report`, { reason }),
+    ({ reason }) => apiClient.post(`/papers/${id}/report`, { reason }),
     {
       onSuccess: () => {
         toast.success('Paper reported successfully');
@@ -133,7 +149,7 @@ const PaperDetails = () => {
   );
 
   const voteMutation = useMutation(
-    ({ isVoting }) => axios.put(`/papers/${id}/vote`, { vote: isVoting }),
+    ({ isVoting }) => apiClient.put(`/papers/${id}/vote`, { vote: isVoting }),
     {
       onMutate: async ({ isVoting }) => {
         await queryClient.cancelQueries(['paper', id]);
@@ -180,6 +196,11 @@ const PaperDetails = () => {
       navigate('/login');
       return;
     }
+    if (isAuthenticated && user?._id === paper.uploader?._id) {
+      toast.error("You cannot vote for your own paper.");
+      return;
+    }
+
     const userId = user?._id || user?.id;
     const hasVoted = paper?.votedBy?.some(voterId => voterId.toString() === userId.toString());
     voteMutation.mutate({ isVoting: !hasVoted });
@@ -241,7 +262,7 @@ const PaperDetails = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="card p-8 animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
@@ -258,7 +279,7 @@ const PaperDetails = () => {
   if (!paper) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="card p-8 text-center">
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Paper Not Found</h2>
@@ -274,11 +295,11 @@ const PaperDetails = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors duration-200"
+          className="flex items-center text-gray-600 hover:text-gray-900 mb-4 md:mb-6 transition-colors duration-200"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to papers
@@ -287,11 +308,11 @@ const PaperDetails = () => {
         {/* Main Content */}
         <div className="card overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-8 text-white">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-6 sm:px-6 sm:py-8 text-white">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
               <div className="flex-1">
-                <h1 className="text-2xl lg:text-3xl font-bold mb-2">{paper.title}</h1>
-                <p className="text-primary-100 text-lg mb-4">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">{paper.title}</h1>
+                <p className="text-primary-100 text-base sm:text-lg mb-4">
                   {paper.course} • {paper.courseCode}
                 </p>
                 <div className="flex flex-wrap items-center gap-4 text-sm">
@@ -325,12 +346,12 @@ const PaperDetails = () => {
           </div>
 
           {/* Paper Details */}
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
               {/* Main Info */}
               <div className="lg:col-span-2">
                 {paper.description && (
-                  <div className="mb-6">
+                  <div className="mb-4 md:mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
                     <p className="text-gray-700 leading-relaxed">{paper.description}</p>
                   </div>
@@ -338,7 +359,7 @@ const PaperDetails = () => {
 
                 {/* File Info */}
                 {paper.file && (
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4 md:mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">File Information</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
@@ -361,7 +382,7 @@ const PaperDetails = () => {
 
                 {/* Tags */}
                 {paper.tags && paper.tags.length > 0 && (
-                  <div className="mb-6">
+                  <div className="mb-4 md:mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
                     <div className="flex flex-wrap gap-2">
                       {paper.tags.map((tag, index) => (
@@ -384,9 +405,13 @@ const PaperDetails = () => {
                   <div className="card p-4">
                     <h3 className="font-semibold text-gray-900 mb-3">Uploaded By</h3>
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary-600" />
-                      </div>
+                      {paper.uploader?.profilePhoto ? (
+                        <img src={paper.uploader.profilePhoto} alt={paper.uploader.username} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-primary-600" />
+                        </div>
+                      )}
                       <div>
                         <Link to={`/profile/${paper.uploader?._id}`} className="font-medium text-gray-900 hover:text-primary-600 hover:underline">
                           {paper.uploader?.username}
@@ -447,7 +472,7 @@ const PaperDetails = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={handleVote}
-                        disabled={voteMutation.isLoading}
+                        disabled={voteMutation.isLoading || (isAuthenticated && user?._id === paper.uploader?._id)}
                         className={`btn-secondary flex items-center justify-center disabled:opacity-70 ${isAuthenticated && paper?.votedBy?.includes(user?._id || user?.id) ? 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100' : ''}`}
                       >
                         <ThumbsUp className="h-4 w-4 mr-2" />
@@ -477,8 +502,8 @@ const PaperDetails = () => {
 
         {/* Similar Papers Section */}
         <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Similar Papers</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 md:mb-6">Similar Papers</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {/* Similar papers would be fetched here */}
             <div className="card p-4 text-center">
               <p className="text-gray-600">More papers from {paper.course} coming soon</p>

@@ -17,8 +17,15 @@ import AdminPanel from './pages/admin/AdminPanel';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import ScrollToTop from './components/layout/ScrollToTop';
-import ChatPage from './pages/user/ChatPage';
-import UserProfile from './pages/user/UserProfile';
+import Chat from './pages/user/Chat';
+import UserProfilePage from './pages/user/UserProfile';
+import ContactUs from './pages/ContactUs';
+
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import HelpCenter from './pages/HelpCenter';
+
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,20 +40,26 @@ const AppContent = () => {
   const location = useLocation();
   const hideFooterOn = ['/messages', '/messages/'];
   const shouldHideFooter = hideFooterOn.some(path => location.pathname.startsWith(path));
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
       <Navbar />
       {/* Define navbar height as a CSS variable for child components to use */}
-      <main className="flex-grow flex flex-col" style={{ '--navbar-height': '64px' }}> {/* Adjust '64px' if your navbar height is different */}
+      <main className="flex-grow flex flex-col" style={{ '--navbar-height': '64px' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/papers" element={<SearchPapers />} />
           <Route path="/papers/:id" element={<PaperDetails />} />
-          <Route path="/profile/:userId" element={<UserProfile />} />
-          
+          <Route path="/profile/:userId" element={<UserProfilePage />} />
+          <Route path="/contact" element={<ContactUs />} />
+
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/help" element={<HelpCenter />} />
+          <Route path="/help-center" element={<HelpCenter />} />
+
+
           <Route 
             path="/upload" 
             element={
@@ -83,10 +96,11 @@ const AppContent = () => {
             path="/messages/:recipientId?" 
             element={
               <ProtectedRoute>
-                <ChatPage />
+                <Chat /> 
               </ProtectedRoute>
             } 
           />
+          {/* Add other routes for your application here */}
         </Routes>
       </main>
       {!shouldHideFooter && <Footer />}
@@ -115,7 +129,7 @@ const AppContent = () => {
       />
     </div>
   );
-}
+};
 
 function App() {
   return (

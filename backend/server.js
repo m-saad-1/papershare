@@ -41,6 +41,10 @@ initSocket(server);
 // Mount routers
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use((req, res, next) => {
+  console.log("Request to:", req.path);
+  next();
+});
 app.use('/api/papers', require('./routes/paperRoutes'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/messages', require('./routes/messages')); // Added for chat functionality

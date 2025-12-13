@@ -15,7 +15,8 @@ import {
   Eye,
   BookOpen,
   X,
-  SlidersHorizontal
+  SlidersHorizontal,
+  EyeOff,
 } from 'lucide-react';
 
 const SearchPapers = () => {
@@ -31,17 +32,24 @@ const SearchPapers = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
+  const [page, setPage] = useState(1);
 
   const { data, isLoading, error } = useQuery(
-    ['papers', { ...filters, sortBy }],
-    async () => {
+    ['papers', filters, sortBy, page],
+    async ({ queryKey }) => {
+      const [_key, filters, sortBy, page] = queryKey;
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
-      params.append('sort', sortBy === 'newest' ? 'createdAt:desc' : 'downloadCount:desc');
+      const [sortField, sortOrder] = (sortBy === 'newest' ? 'createdAt:desc' : 'downloadCount:desc').split(':');
       
-      const response = await axios.get(`/papers?${params.toString()}`);
+      params.append('page', page);
+      params.append('visibility', 'public');
+      params.append('sortBy', sortField);
+      params.append('sortOrder', sortOrder);
+
+      const response = await axios.get(`/api/papers?${params.toString()}`);
       return response.data;
     },
     {
@@ -49,6 +57,11 @@ const SearchPapers = () => {
       staleTime: 5 * 60 * 1000,
     }
   );
+
+  // Add console logs for debugging
+  console.log("Papers data:", data);
+  console.log("Papers loading:", isLoading);
+  console.log("Papers error:", error);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -58,12 +71,14 @@ const SearchPapers = () => {
     setSearchParams(params);
   }, [filters, setSearchParams]);
 
+
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
       ...prev,
       [key]: value
     }));
   };
+
 
   const clearFilters = () => {
     setFilters({
@@ -75,6 +90,7 @@ const SearchPapers = () => {
       year: '',
       paperType: '',
     });
+    setPage(1);
   };
 
   const paperTypes = [
@@ -289,7 +305,7 @@ const SearchPapers = () => {
                 <p className="text-gray-600">Please try again later</p>
               </div>
             ) : data?.papers?.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="papers-grid">
                 {data.papers.map((paper) => (
                   <PaperCard key={paper._id} paper={paper} />
                 ))}
@@ -320,14 +336,15 @@ const SearchPapers = () => {
             )}
 
             {/* Pagination */}
-            {data?.totalPages > 1 && (
+            {(data?.totalPages ?? 0) > 1 && (
               <div className="flex justify-center mt-8">
                 <div className="flex space-x-2">
                   {Array.from({ length: data.totalPages }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}
+                      onClick={() => setPage(page)}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                        data.currentPage === page
+                        data?.currentPage === page
                           ? 'bg-primary-600 text-white'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
@@ -473,8 +490,8 @@ const PaperCard = ({ paper }) => {
   };
 
   return (
-    <div className="card group hover:shadow-lg transition-all duration-200">
-      <div className="p-6">
+    <Link to={`/papers/${paper._id}`} className="block card group hover:shadow-lg transition-all duration-200">
+      <div className="p-6 h-full flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors duration-200 line-clamp-2 mb-1">
@@ -508,7 +525,7 @@ const PaperCard = ({ paper }) => {
           <span>{paper.department}</span>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-auto">
           <div className="flex items-center space-x-4 text-sm text-gray-500">
             <span className="flex items-center">
               <Download className="h-4 w-4 mr-1" />
@@ -526,16 +543,21 @@ const PaperCard = ({ paper }) => {
               <Eye className="h-4 w-4 mr-1" />
               {paper.views || 0}
             </span>
+            {paper.visibility === 'private' && (
+              <span className="flex items-center bg-gray-200 text-gray-800 px-2 py-0.5 rounded-full text-xs">
+                <EyeOff className="h-3 w-3 mr-1" />
+                Private
+              </span>
+            )}
           </div>
-          <Link
-            to={`/papers/${paper._id}`}
+          <span
             className="text-primary-600 hover:text-primary-700 font-medium text-sm group-hover:underline transition-colors duration-200"
           >
             View Details
-          </Link>
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

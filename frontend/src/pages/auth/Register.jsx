@@ -11,6 +11,8 @@ const Register = () => {
     confirmPassword: '',
     university: '',
     department: '',
+    semester: '',
+    batch: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -217,6 +219,48 @@ const Register = () => {
                         <option key={dept} value={dept}>{dept}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Semester and Batch Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="semester" className="block text-sm font-medium text-gray-700">
+                    Semester
+                  </label>
+                  <div className="mt-1">
+                    <select
+                      id="semester"
+                      name="semester"
+                      required
+                      value={formData.semester}
+                      onChange={handleChange}
+                      className="input-field"
+                    >
+                      <option value="">Select Semester</option>
+                      {[...Array(8)].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>{i + 1}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="batch" className="block text-sm font-medium text-gray-700">
+                    Batch
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="batch"
+                      name="batch"
+                      type="text"
+                      autoComplete="off"
+                      required
+                      value={formData.batch}
+                      onChange={handleChange}
+                      className="input-field"
+                      placeholder="e.g., 2021"
+                    />
                   </div>
                 </div>
               </div>

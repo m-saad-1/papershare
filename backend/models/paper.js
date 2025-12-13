@@ -55,12 +55,11 @@ const paperSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
-  },
-  visibility: {
+      status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'approved'
+    },  visibility: {
     type: String,
     enum: ['public', 'private'],
     default: 'public'

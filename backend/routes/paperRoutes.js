@@ -29,6 +29,20 @@ router.get('/user/my-papers', protect, async (req, res) => {
   }
 });
 
+// Get user's downloaded papers
+router.get('/user/my-downloads', protect, async (req, res) => {
+  try {
+    const downloads = await Download.find({ user: req.user._id })
+      .sort({ downloadedAt: -1 })
+      .populate('paper');
+
+    res.json(downloads);
+  } catch (error) {
+    console.error('Get user downloads error:', error);
+    res.status(500).json({ message: 'Server error fetching user downloads' });
+  }
+});
+
 // Public route for getting papers by a specific user ID
 router.get('/user/:userId', getPapersByUser);
 
@@ -135,6 +149,8 @@ router.post('/upload', protect, upload.single('file'), ...[
 
 // Get all papers with filtering and pagination
 router.get('/', async (req, res) => {
+  console.log("Reached /api/papers public route handler");
+  console.log("Request query:", req.query);
   try {
     const {
       page = 1,
@@ -147,11 +163,18 @@ router.get('/', async (req, res) => {
       year,
       paperType,
       status = 'approved',
-      sort = '-createdAt'
+      sortBy = 'createdAt', // Default sort by createdAt
+      sortOrder = 'desc' // Default sort order to descending
     } = req.query;
 
+    let { visibility } = req.query;
+    const validVisibilityOptions = ['public', 'private'];
+    if (!visibility || !validVisibilityOptions.includes(visibility)) {
+      visibility = 'public'; // Default to public if invalid or not provided
+    }
+
     // Build filter object
-    const filter = { status: 'approved' };
+    const filter = { status: 'approved', visibility };
     
     if (university) filter.university = new RegExp(university, 'i');
     if (department) filter.department = new RegExp(department, 'i');
@@ -165,12 +188,13 @@ router.get('/', async (req, res) => {
       filter.$text = { $search: search };
     }
 
-    const sortOptions = {};
-    if (sort) {
-      const [sortKey, sortOrder] = sort.split(':');
-      sortOptions[sortKey] = sortOrder === 'desc' ? -1 : 1;
-    }
+    console.log("Constructed filter:", filter);
 
+    const sortOptions = {};
+    if (sortBy) {
+      sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    }
+    console.log("Constructed sortOptions:", sortOptions);
 
     const options = {
       page: parseInt(page),
@@ -180,14 +204,18 @@ router.get('/', async (req, res) => {
       select: '-file.path'
     };
 
+    console.log("Before Paper.find()");
     const papers = await Paper.find(filter)
       .sort(options.sort)
       .limit(options.limit * 1)
       .skip((options.page - 1) * options.limit)
       .populate('uploader', 'username university department')
       .exec();
+    console.log("After Paper.find()");
 
+    console.log("Before Paper.countDocuments()");
     const total = await Paper.countDocuments(filter);
+    console.log("After Paper.countDocuments()");
 
     res.json({
       papers,
@@ -197,8 +225,12 @@ router.get('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get papers error:', error);
-    res.status(500).json({ message: 'Server error fetching papers' });
+    console.error('Get papers error:', error.message, error.stack);
+    res.status(500).json({
+      message: 'Server error fetching papers',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -459,39 +491,6 @@ router.post('/:id/report', protect, [
   } catch (error) {
     console.error('Report error:', error);
     res.status(500).json({ message: 'Server error during reporting' });
-  }
-});
-
-// Get user's uploaded papers
-router.get('/user/my-papers', protect, async (req, res) => {
-  try {
-    if (!req.user) {
-      console.error('req.user is not defined in /user/my-papers route.');
-      return res.status(401).json({ message: 'Not authorized, user data not available.' });
-    }
-    console.log('User in /user/my-papers:', req.user._id); // Log only the ID for brevity
-    const papers = await Paper.find({ uploader: req.user._id })
-      .sort({ createdAt: -1 })
-      .select('title course courseCode university department year downloadCount views status visibility paperType teacher');
-
-    res.json(papers);
-  } catch (error) {
-    console.error('Get user papers error details:', error); // More specific logging
-    res.status(500).json({ message: 'Server error fetching user papers', error: error.message }); // Send error message to client
-  }
-});
-
-// Get user's downloaded papers
-router.get('/user/my-downloads', protect, async (req, res) => {
-  try {
-    const downloads = await Download.find({ user: req.user._id })
-      .sort({ downloadedAt: -1 })
-      .populate('paper');
-
-    res.json(downloads);
-  } catch (error) {
-    console.error('Get user downloads error:', error);
-    res.status(500).json({ message: 'Server error fetching user downloads' });
   }
 });
 

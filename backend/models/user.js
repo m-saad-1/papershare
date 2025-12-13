@@ -25,6 +25,16 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  semester: {
+    type: String,
+    required: false,
+    default: '',
+  },
+  batch: {
+    type: String,
+    required: false,
+    default: '',
+  },
   role: {
     type: String,
     enum: ['student', 'admin'],
@@ -33,6 +43,7 @@ const UserSchema = new mongoose.Schema({
   bio: {
     type: String,
   },
+
   uploadCount: { // Added for leaderboard
     type: Number,
     default: 0,

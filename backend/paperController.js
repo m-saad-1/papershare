@@ -9,8 +9,8 @@ const Paper = require('./models/paper.js');
  * @access  Public
  */
 const getPapersByUser = asyncHandler(async (req, res) => {
-  const papers = await Paper.find({ uploader: req.params.userId })
-    .sort({ publicationDate: -1 });
+  const papers = await Paper.find({ uploader: req.params.userId, status: 'approved', visibility: 'public' })
+    .sort({ createdAt: -1 });
 
   res.json(papers);
 });

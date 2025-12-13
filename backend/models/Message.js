@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const MessageSchema = new Schema({
+const messageSchema = new Schema({
   conversationId: {
     type: Schema.Types.ObjectId,
     ref: 'Conversation',
@@ -9,19 +9,14 @@ const MessageSchema = new Schema({
   },
   sender: {
     type: Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'User', // This must match the name of your User model
     required: true
   },
-  content: {
+  text: {
     type: String,
-    // Content is not required if an attachment is present
-    required: function() { return !this.attachmentUrl; }
+    required: true,
+    trim: true
   },
-  attachmentUrl: {
-    type: String
-  },
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
 
-module.exports = mongoose.model('Message', MessageSchema);
+module.exports = mongoose.model('Message', messageSchema);
