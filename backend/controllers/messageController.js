@@ -5,13 +5,20 @@ const User = require('../models/user');
 const multer = require('multer'); // Import multer
 const path = require('path');     // Import path
 
+const crypto = require('crypto');
+
 // Multer storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // files will be saved in the 'uploads/' directory
+    // Ensure the 'uploads' directory exists
+    // In a real app, you might want to create it if it doesn't exist.
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+    // A more robust way to generate a unique filename
+    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
+    const extension = path.extname(file.originalname);
+    cb(null, `attachment-${uniqueSuffix}${extension}`);
   },
 });
 
@@ -19,74 +26,80 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
   fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|mp3|wav|ogg|mp4|mov|avi/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    // Define allowed file types
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/png', 'image/gif',
+      'application/pdf',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'audio/mpeg', 'audio/wav', 'audio/ogg',
+      'video/mp4', 'video/quicktime', 'video/x-msvideo'
+    ];
+    const allowedExtensions = ['.jpeg', '.jpg', '.png', '.gif', '.pdf', '.doc', '.docx', '.txt', '.mp3', '.wav', '.ogg', '.mp4', '.mov', '.avi'];
 
-    if (mimetype && extname) {
-      return cb(null, true);
+    // Check mime type and file extension
+    const isMimeTypeAllowed = allowedMimeTypes.includes(file.mimetype);
+    const isExtensionAllowed = allowedExtensions.includes(path.extname(file.originalname).toLowerCase());
+
+    if (isMimeTypeAllowed && isExtensionAllowed) {
+      cb(null, true);
     } else {
-      cb(new Error('Unsupported file type!'), false);
+      cb(new Error('Unsupported file type! Please upload a supported file.'), false);
     }
   },
 });
 
-// @desc    Upload an attachment and send it as a message
-// @route   POST /api/messages/:conversationId/attachments
-// @access  Private
-const uploadAttachment = asyncHandler(async (req, res) => {
-  const { conversationId } = req.params;
-  const senderId = req.user._id;
-
-  if (!req.file) {
-    res.status(400);
-    throw new Error('No file uploaded.');
-  }
-
-  const attachmentUrl = `/uploads/${req.file.filename}`;
-  const fileType = req.file.mimetype.split('/')[0]; // 'image', 'video', 'audio', 'application'
-
-  const message = await Message.create({
-    conversationId: conversationId,
-    sender: senderId,
-    text: `Sent a ${req.file.originalname}`, // Populate 'text' field to match schema
-    attachment: {
-      url: attachmentUrl,
-      type: fileType,
-    },
-  });
-
-  const conversation = await Conversation.findById(conversationId);
-  if (conversation) {
-    conversation.lastMessage = message._id;
-    await conversation.save();
-  }
-
-  res.status(201).json({ message, attachmentUrl });
-});
 
 
-// @desc    Get all conversations for a user
+
+// @desc    Get all conversations for the logged-in user
 // @route   GET /api/messages/conversations
 // @access  Private
 const getConversations = asyncHandler(async (req, res) => {
-  console.log(`[getConversations] User ID: ${req.user._id}`);
+  // Fetch conversations where the current user is a participant
   const conversations = await Conversation.find({ participants: req.user._id })
-    .populate('participants', 'username avatar')
-    .populate('lastMessage');
-  console.log(`[getConversations] Found ${conversations.length} conversations for user ${req.user._id}`);
-  res.json(conversations);
+    // Populate participant details and the last message for each conversation
+    .populate('participants', 'username profilePicture isOnline')
+    .populate({
+      path: 'lastMessage',
+      populate: {
+        path: 'sender',
+        select: 'username',
+      },
+    })
+    .sort({ updatedAt: -1 }); // Sort by most recently updated
+
+  // Enhance conversations with unread counts and dynamic recipient data
+  const enhancedConversations = await Promise.all(
+    conversations.map(async (convo) => {
+      // Logic to determine unread messages would go here if not already handled
+      // For example, based on a 'readBy' field in the Message model
+      
+      const recipient = convo.participants.find(
+        (p) => p._id.toString() !== req.user._id.toString()
+      );
+      
+      return {
+        ...convo.toObject(),
+        recipient, // Add recipient for easier frontend handling
+      };
+    })
+  );
+
+  res.json(enhancedConversations);
 });
 
-// @desc    Get all messages for a conversation
+// @desc    Get all messages for a specific conversation
 // @route   GET /api/messages/:conversationId/messages
 // @access  Private
 const getMessages = asyncHandler(async (req, res) => {
+  // Find all messages belonging to the given conversation ID
   const messages = await Message.find({ conversationId: req.params.conversationId })
-    .populate('sender', 'username avatar')
+    // Populate sender information for each message
+    .populate('sender', 'username profilePicture')
+    // Sort messages chronologically
     .sort({ createdAt: 'asc' });
-  console.log(`[getMessages] Fetching messages for conversationId: ${req.params.conversationId}`);
-  console.log(`[getMessages] Messages found: ${messages.length}`);
+
   res.json(messages);
 });
 
@@ -94,8 +107,8 @@ const getMessages = asyncHandler(async (req, res) => {
 // @route   POST /api/messages/:conversationId/messages
 // @access  Private
 const sendMessage = asyncHandler(async (req, res) => {
-  const { conversationId } = req.params; // Get conversationId from params
-  const { text, attachment } = req.body; // Allow attachment in body
+  const { conversationId } = req.params;
+  const { text } = req.body;
   const senderId = req.user._id;
 
   if (!conversationId) {
@@ -103,56 +116,78 @@ const sendMessage = asyncHandler(async (req, res) => {
     throw new Error('Conversation ID is required.');
   }
 
-  let messageText = text;
-  if (!messageText && attachment) {
-    // If only attachment is present, provide a default text
-    messageText = `Sent a ${attachment.type || 'file'}`;
-  } else if (!messageText && !attachment) {
+  // Ensure there is either text or a file
+  if (!text && !req.file) {
     res.status(400);
-    throw new Error('Text or attachment is required.');
+    throw new Error('Message must contain either text or a file.');
   }
 
-  const message = await Message.create({
-    conversationId: conversationId,
+  let fileUrl = null;
+  let fileName = null;
+
+  if (req.file) {
+    // In the Message model, we store the path relative to the uploads folder
+    // The base URL is prepended on the frontend.
+    fileUrl = `uploads/${req.file.filename}`;
+    fileName = req.file.originalname;
+  }
+
+  // Create and save the new message
+  let message = await Message.create({
+    conversationId,
     sender: senderId,
-    text: messageText, // Use 'text' to match schema
-    attachment: attachment, // Save attachment if present
+    text: text || '', // Ensure text is at least an empty string
+    fileUrl,
+    fileName,
   });
 
+  // Populate sender details for the response
+  message = await message.populate('sender', 'username profilePicture');
+
+
+  // Update the conversation's last message
   const conversation = await Conversation.findById(conversationId);
   if (conversation) {
     conversation.lastMessage = message._id;
     await conversation.save();
+    
+    // You might also want to emit this message via socket.io to the recipient
+    // For example: req.io.to(recipientSocketId).emit('newMessage', message);
   }
 
   res.status(201).json(message);
 });
 
-// @desc    Find or create a conversation
+// @desc    Find or create a one-on-one conversation
 // @route   POST /api/messages/conversations
 // @access  Private
 const findOrCreateConversation = asyncHandler(async (req, res) => {
   const { recipientId } = req.body;
   const senderId = req.user._id;
 
-  console.log(`[findOrCreateConversation] Attempting to find or create conversation with recipientId: ${recipientId}`);
+  // Validate that recipientId is provided
+  if (!recipientId) {
+    res.status(400);
+    throw new Error('Recipient ID is required to start a conversation.');
+  }
 
+  // Find an existing conversation between the two users
   let conversation = await Conversation.findOne({
-    participants: { $all: [senderId, recipientId] },
-  }).populate('participants', 'username avatar');
+    participants: { $all: [senderId, recipientId], $size: 2 }, // Ensure it's a 1-on-1 chat
+  });
 
+  // If no conversation exists, create a new one
   if (!conversation) {
     conversation = await Conversation.create({
       participants: [senderId, recipientId],
     });
-    // Populate after creation as well
-    conversation = await conversation.populate('participants', 'username avatar');
-    console.log(`[findOrCreateConversation] New conversation created: ${conversation._id}`);
-  } else {
-    console.log(`[findOrCreateConversation] Existing conversation found: ${conversation._id}`);
   }
 
-  res.status(200).json(conversation);
+  // Populate participant details for the response
+  const populatedConversation = await Conversation.findById(conversation._id)
+    .populate('participants', 'username profilePicture isOnline');
+
+  res.status(200).json(populatedConversation);
 });
 
 module.exports = {
@@ -160,6 +195,5 @@ module.exports = {
   getMessages,
   sendMessage,
   findOrCreateConversation,
-  uploadAttachment, // Export the new function
-  upload            // Export multer upload middleware to be used in routes
+  upload, // Export multer upload middleware
 };

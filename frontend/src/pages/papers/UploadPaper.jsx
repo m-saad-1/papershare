@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from 'react-query';
 import axios from 'axios';
+import apiClient from '../../apiClient';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import {
@@ -38,7 +39,7 @@ const UploadPaper = () => {
     // When sending FormData, we must let the browser set the 'Content-Type' header.
     // This ensures the 'boundary' part of the header is correctly generated.
     // We only need to manually add the Authorization header.
-    return axios.post('/papers/upload', data, {
+    return apiClient.post('/papers/upload', data, {
       headers: { 
         // DO NOT set 'Content-Type': 'multipart/form-data' manually.
         'Authorization': `Bearer ${token}` },
@@ -50,6 +51,7 @@ const UploadPaper = () => {
         navigate('/dashboard');
       },
       onError: (error) => {
+        console.error('Upload error details:', error.response?.data); // Log full error data
         toast.error(error.response?.data?.message || 'Failed to upload paper');
       },
     }

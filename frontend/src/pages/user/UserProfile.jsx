@@ -120,8 +120,8 @@ const UserProfile = () => {
             <div className="flex items-center gap-4">
               {/* Avatar */}
               <div className="relative">
-                {user?.profilePhoto ? (
-                  <img src={user.profilePhoto} alt={user.username} className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover shadow-md" />
+                {user?.profilePicture ? (
+                  <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${user.profilePicture.replace(/\\/g, '/')}`} alt={user.username} className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover shadow-md" />
                 ) : (
                   <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-2xl md:text-3xl shadow-md">
                     {user?.username?.charAt(0).toUpperCase()}
@@ -345,60 +345,55 @@ const UserProfile = () => {
                 {papers && papers.length > 0 ? (
                   <div className="divide-y divide-gray-200">
                     <div className="space-y-4 p-4 md:p-6">
-                      {papers.map((paper) => (
-                        <div key={paper._id} className="border border-gray-200 rounded-lg hover:border-gray-300 transition-colors duration-200">
-                          <div className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-start space-x-3">
-                                  <FaFileAlt className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
-                                  <div className="flex-1">
-                                    <h3 className="font-semibold text-gray-900 mb-1">
-                                      <Link to={`/papers/${paper._id}`} className="hover:text-primary-600 transition-colors">
-                                        {paper.title}
-                                      </Link>
-                                    </h3>
-                                    {paper.teacher && (
-                                      <p className="text-gray-500 text-sm mb-1">Teacher: {paper.teacher}</p>
-                                    )}
-                                    <p className="text-gray-600 text-sm">
-                                      {paper.course} • {paper.courseCode} • {paper.department}
-                                    </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {papers.map((paper) => (
+                          <Link key={paper._id} to={`/papers/${paper._id}`} className="block bg-white rounded-xl p-6 border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200 group">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors duration-200 pr-4 line-clamp-2">
+                                {paper.title}
+                              </h3>
+                              <span className="text-xs font-medium bg-primary-100 text-primary-700 px-2 py-1 rounded-full whitespace-nowrap">
+                                {paper.paperType}
+                              </span>
+                            </div>
+                            {paper.teacher && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Teacher: {paper.teacher}
+                              </p>
+                            )}
+                            <p className="text-sm text-gray-600 mt-2 truncate">
+                              {paper.course}
+                              {paper.courseCode && ` • ${paper.courseCode}`}
+                            </p>
+                            <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+                              <span className="truncate pr-2">{paper.university}</span>
+                              <span className="truncate">{paper.department}</span>
+                            </div>
 
-                                    <div className="flex items-center space-x-4 text-sm text-gray-500 mt-2">
-                                      <span className="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">
-                                        {paper.paperType}
-                                      </span>
-                                      <span>•</span>
-                                      <span>{paper.university}</span>
-                                      <span>•</span>
-                                      <span>{paper.year}</span>
-                                      <span>•</span>
-                                      <span className="flex items-center">
-                                        <FaDownload className="h-3 w-3 mr-1" />
-                                        {paper.downloadCount} downloads
-                                      </span>
-                                      <span>•</span>
-                                      <span className="flex items-center">
-                                        <FaEye className="h-3 w-3 mr-1" />
-                                        {paper.views || 0} views
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+                              <div className="flex items-center space-x-3">
+                                <span className="flex items-center">
+                                  <FaDownload className="h-4 w-4 mr-1.5" />
+                                  {paper.downloadCount}
+                                </span>
+                                <span className="flex items-center">
+                                  <FaThumbsUp className="h-4 w-4 mr-1.5" />
+                                  <span>{paper.helpfulVotes || 0}</span>
+                                </span>
+                                <span className="flex items-center">
+                                  <FaEye className="h-4 w-4 mr-1.5" />
+                                  {paper.views || 0}
+                                </span>
                               </div>
-                              <div className="flex items-center space-x-3 ml-4">
-                                <Link
-                                  to={`/papers/${paper._id}`}
-                                  className="text-primary-600 hover:text-primary-700 text-sm font-medium border border-primary-200 hover:border-primary-300 px-3 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100 transition-colors"
-                                >
-                                  View
-                                </Link>
+                              <div className="flex items-center">
+                                <span className="text-primary-600 hover:text-primary-700 font-medium text-xs group-hover:underline">
+                                  View Details
+                                </span>
                               </div>
                             </div>
-                          </div>
-                        </div>
-                      ))}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : (

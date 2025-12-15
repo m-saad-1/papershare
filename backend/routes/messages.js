@@ -6,13 +6,12 @@ const {
   getMessages,
   sendMessage,
   findOrCreateConversation,
-  uploadAttachment, // Import new function
-  upload            // Import multer middleware
-} = require('../controllers/messageController'); // Updated import
+  upload, // Import multer middleware
+} = require('../controllers/messageController');
 
 router.route('/conversations').get(protect, getConversations).post(protect, findOrCreateConversation);
 router.route('/:conversationId/messages').get(protect, getMessages);
-router.route('/:conversationId/messages').post(protect, sendMessage);
-router.route('/:conversationId/attachments').post(protect, upload.single('file'), uploadAttachment); // New route for attachments
+router.route('/:conversationId/messages').post(protect, upload.single('file'), sendMessage);
+
 
 module.exports = router;

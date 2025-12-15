@@ -24,23 +24,186 @@ const HelpCenter = () => {
   const [openFaqs, setOpenFaqs] = useState({});
   const [openArticles, setOpenArticles] = useState({}); // New state for articles
 
-  const generateArticleContent = (title) => {
+  const generateArticleContent = (articleId) => {
+    let content;
+    switch (articleId) {
+      // Getting Started
+      case 'gs1':
+        content = (
+          <>
+            <p>Creating an account on PaperShare is simple and unlocks full access to all features.</p>
+            <ol>
+              <li>Navigate to the "Sign Up" page from the homepage.</li>
+              <li>Fill in your details, including your name, email, password, university, and department.</li>
+              <li>Verify your email address by clicking the link sent to your inbox.</li>
+              <li>Once verified, you can log in and start sharing and downloading papers!</li>
+            </ol>
+          </>
+        );
+        break;
+      case 'gs3':
+        content = (
+          <>
+            <p>Your profile helps others in the community know a bit about you. Your university and department are pre-filled from your registration.</p>
+            <ol>
+              <li>Go to your "Dashboard" after logging in.</li>
+              <li>Find the "Profile" section.</li>
+              <li>Here you can update your personal information. A complete profile helps in getting relevant paper recommendations.</li>
+            </ol>
+          </>
+        );
+        break;
+      // Uploading Papers
+      case 'up1':
+        content = (
+          <>
+            <p>Sharing your past papers helps the entire student community. Follow these steps to upload a paper:</p>
+            <ol>
+              <li>Click on the "Upload" button in the navigation bar or visit the Upload page.</li>
+              <li>Fill in the paper's information, including the title, course name, university, and year. The more details you provide, the easier it is for others to find.</li>
+              <li>Drag and drop your paper into the upload area, or click to select the file from your computer.</li>
+              <li>Ensure your file is a <strong>PDF</strong> and under <strong>10MB</strong>.</li>
+              <li>Click the "Upload Paper" button to submit it for review.</li>
+            </ol>
+          </>
+        );
+        break;
+      case 'up2':
+        content = (
+          <>
+            <p>To ensure a smooth upload process, please adhere to the following file requirements:</p>
+            <ul>
+              <li><strong>File Type:</strong> We only accept <strong>PDF</strong> (<code>.pdf</code>) files. Word documents, images, or other formats are not supported.</li>
+              <li><strong>File Size:</strong> The maximum allowed file size is <strong>10MB</strong>. If your file is larger, consider compressing it before uploading.</li>
+            </ul>
+          </>
+        );
+        break;
+      case 'up3':
+        content = (
+          <>
+            <p>To maintain the quality and relevance of our content, every paper submitted goes through a brief review process.</p>
+            <ul>
+              <li>After you upload a paper, it enters our moderation queue.</li>
+              <li>Our team typically reviews submissions within <strong>24-48 hours</strong>.</li>
+              <li>We check if the content matches the description and adheres to our community guidelines.</li>
+              <li>You will receive a notification once your paper is approved and published.</li>
+            </ul>
+          </>
+        );
+        break;
+      case 'dp2':
+        content = (
+          <>
+            <p>We believe in open access to educational materials. Here are our guidelines on downloading:</p>
+            <ul>
+              <li><strong>For All Users:</strong> Both registered users and guests can download papers freely.</li>
+              <li><strong>No Hard Limits:</strong> Currently, there are no strict daily or monthly download limits.</li>
+              <li><strong>Fair Use:</strong> We monitor for unusual activity, such as automated scraping or excessive downloading, to protect the platform. Accounts engaging in such activities may be temporarily restricted. Our goal is to ensure fair access for everyone in the community.</li>
+            </ul>
+          </>
+        );
+        break;
+      // Account Management
+      case 'am1':
+        content = (
+          <>
+            <p>Keeping your profile up-to-date is easy. Here’s how:</p>
+            <ol>
+              <li>Log in to your account and navigate to your <strong>Dashboard</strong>.</li>
+              <li>Find the "Profile" or "Account Settings" section.</li>
+              <li>Here, you can update your name, university, and department.</li>
+              <li>Click "Save Changes" to apply your updates.</li>
+            </ol>
+          </>
+        );
+        break;
+      case 'am2':
+        content = (
+          <>
+            <p>To change your password for security reasons:</p>
+            <ol>
+              <li>Go to your "Account Settings" page.</li>
+              <li>Select the "Security" or "Change Password" tab.</li>
+              <li>Enter your current password for verification.</li>
+              <li>Enter your new, desired password and confirm it.</li>
+              <li>Click "Update Password". You will be logged out from other devices for security.</li>
+            </ol>
+          </>
+        );
+        break;
+      case 'am3':
+        content = (
+          <>
+            <p>Protecting your account is crucial. Follow these tips:</p>
+            <ul>
+              <li>Use a <strong>strong, unique password</strong> that combines letters, numbers, and symbols.</li>
+              <li><strong>Do not share</strong> your login credentials with anyone.</li>
+              <li>Be cautious of <strong>phishing emails</strong>. We will never ask for your password via email.</li>
+              <li>Always <strong>log out</strong> of your account if you are using a shared or public computer.</li>
+            </ul>
+          </>
+        );
+        break;
+      case 'am4':
+        content = (
+          <>
+            <p>We're sorry to see you go. If you wish to delete your account, please follow these steps:</p>
+            <ol>
+              <li>Navigate to your "Account Settings" page.</li>
+              <li>Find the "Delete Account" section.</li>
+              <li>Please read the information carefully, as account deletion is <strong>permanent</strong> and will erase all your data, including uploaded papers.</li>
+              <li>To proceed, you may need to contact our support team via the <Link to="/contact" className="text-primary-600 hover:underline">Contact Us</Link> page to finalize the request. This is a security measure to prevent accidental deletion.</li>
+            </ol>
+          </>
+        );
+        break;
+      // Policies & Guidelines
+      case 'pg1':
+      case 'pg3': // Content and Community guidelines are similar
+        content = (
+          <>
+            <p>Our community thrives on respect and academic integrity. When uploading content, you agree not to post materials that are illegal, defamatory, harassing, or infringe on any third party's intellectual property rights. All users are expected to interact respectfully. For more details, please read our full <Link to="/terms-of-service" className="text-primary-600 hover:underline">Terms of Service</Link>.</p>
+          </>
+        );
+        break;
+      case 'pg2':
+        content = (
+          <>
+            <p>We take copyright infringement seriously. You may only upload content that you have the right to share. If you believe your copyrighted work has been posted on PaperShare without authorization, please follow the instructions in our <Link to="/terms-of-service#copyright" className="text-primary-600 hover:underline">Copyright Policy</Link> to submit a takedown notice.</p>
+          </>
+        );
+        break;
+      case 'pg4':
+        content = (
+          <>
+            <p>Your privacy is important to us. We collect data such as your name, email, and university to provide and improve our service. We do not sell your personal data. You have rights over your data, including the right to access or delete it. For a complete overview, please review our full <Link to="/privacy-policy" className="text-primary-600 hover:underline">Privacy Policy</Link>.</p>
+          </>
+        );
+        break;
+      // Downloading Papers
+      case 'dp1':
+        content = (
+          <>
+            <p>Finding and downloading papers is easy. You can browse and download papers even without an account.</p>
+            <ol>
+              <li>Go to the "Browse Papers" or "Search" page.</li>
+              <li>Use the search bar and filters to find the paper you need. You can filter by university, department, course, and more.</li>
+              <li>Click on a paper card to view its details.</li>
+              <li>On the paper details page, you will find a "Download" button. Click it to save the PDF to your device.</li>
+            </ol>
+          </>
+        );
+        break;
+      // Default
+      default:
+        content = (
+          <p>This is a detailed article. Here you will find comprehensive information and steps. For more personalized assistance, please refer to our contact support section.</p>
+        );
+    }
     return (
       <div className="prose prose-sm sm:prose-base max-w-none text-gray-700">
-        <p>
-          This is a detailed article about "<strong>{title}</strong>". Here you will find comprehensive information and steps.
-          Our aim is to provide clear and concise guidance on this topic.
-        </p>
-        <h4>Key Steps:</h4>
-        <ol>
-          <li>Understand the basics: Start by familiarizing yourself with the core concepts.</li>
-          <li>Follow the instructions: Each step is designed to be easy to follow.</li>
-          <li>Troubleshoot common issues: We've included tips for common problems you might encounter.</li>
-          <li>Explore advanced features: Once you're comfortable, delve into more advanced functionalities.</li>
-        </ol>
-        <p>
-          For more personalized assistance, please refer to our contact support section.
-        </p>
+        {content}
       </div>
     );
   };
@@ -55,19 +218,14 @@ const HelpCenter = () => {
   const articleData = [
     // Getting Started
     { id: 'gs1', categoryId: 'getting-started', title: 'How to create an account', readTime: '2 min' },
-    { id: 'gs2', categoryId: 'getting-started', title: 'Complete registration guide', readTime: '3 min' },
     { id: 'gs3', categoryId: 'getting-started', title: 'Setting up your profile', readTime: '4 min' },
-    { id: 'gs4', categoryId: 'getting-started', title: 'Navigating the platform', readTime: '3 min' },
     // Uploading Papers
     { id: 'up1', categoryId: 'uploading', title: 'How to upload a paper', readTime: '5 min' },
     { id: 'up2', categoryId: 'uploading', title: 'File format requirements', readTime: '2 min' },
     { id: 'up3', categoryId: 'uploading', title: 'Paper approval process', readTime: '3 min' },
-    { id: 'up4', categoryId: 'uploading', title: 'Troubleshooting upload issues', readTime: '4 min' },
     // Downloading Papers
     { id: 'dp1', categoryId: 'downloading', title: 'How to download papers', readTime: '2 min' },
     { id: 'dp2', categoryId: 'downloading', title: 'Download limits and restrictions', readTime: '3 min' },
-    { id: 'dp3', categoryId: 'downloading', title: 'Troubleshooting download issues', readTime: '4 min' },
-    { id: 'dp4', categoryId: 'downloading', title: 'Offline access to papers', readTime: '3 min' },
     // Account Management
     { id: 'am1', categoryId: 'account', title: 'Updating account information', readTime: '3 min' },
     { id: 'am2', categoryId: 'account', title: 'Changing password', readTime: '2 min' },
@@ -78,7 +236,7 @@ const HelpCenter = () => {
     { id: 'pg2', categoryId: 'policies', title: 'Copyright policy', readTime: '6 min' },
     { id: 'pg3', categoryId: 'policies', title: 'Community guidelines', readTime: '4 min' },
     { id: 'pg4', categoryId: 'policies', title: 'Privacy policy overview', readTime: '3 min' },
-  ].map(article => ({ ...article, content: generateArticleContent(article.title) }));
+  ].map(article => ({ ...article, content: generateArticleContent(article.id) }));
 
   const categories = [
     {

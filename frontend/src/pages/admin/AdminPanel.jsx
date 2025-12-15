@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
 import {
   Shield,
   FileText,
@@ -23,61 +24,76 @@ import {
 } from 'lucide-react';
 
 
-
-
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const queryClient = useQueryClient();
   const [userSearch, setUserSearch] = useState('');
   const [paperSearch, setPaperSearch] = useState('');
+  const { token } = useAuth(); // Get the token from AuthContext
 
-  const { data: stats } = useQuery('admin-stats', async () => {
-    const response = await axios.get('/admin/stats');
-    return response.data;
-  });
+  // Axios instance with auth header
+  const authAxios = useMemo(() => {
+    if (token) {
+      return axios.create({
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }
+    return axios; // Fallback to default axios if no token (shouldn't happen for protected routes)
+  }, [token]);
 
-  const { data: pendingPapers, isLoading: isLoadingPending, isError: isErrorPending } = useQuery(
-    ['pending-papers', activeTab], // Re-run query when activeTab changes
+  const { data: stats } = useQuery(
+    ['admin-stats', token],
     async () => {
-      const response = await axios.get('/admin/papers/pending');
+      const response = await authAxios.get('/api/admin/stats');
       return response.data;
     },
-    { enabled: activeTab === 'pending' } // Only fetch when this tab is active
+    { enabled: !!token } // Only fetch if token exists
+  );
+
+  const { data: pendingPapers, isLoading: isLoadingPending, isError: isErrorPending } = useQuery(
+    ['pending-papers', activeTab, token], // Re-run query when activeTab or token changes
+    async () => {
+      const response = await authAxios.get('/api/admin/papers/pending');
+      return response.data;
+    },
+    { enabled: activeTab === 'pending' && !!token } // Only fetch when this tab is active and token exists
   );
 
   const { data: reportedPapers, isLoading: isLoadingReported, isError: isErrorReported } = useQuery(
-    'reported-papers',
+    ['reported-papers', activeTab, token],
     async () => {
-      const response = await axios.get('/admin/papers/reported');
+      const response = await authAxios.get('/api/admin/papers/reported');
       return response.data;
     },
     {
-      enabled: activeTab === 'reports',
+      enabled: activeTab === 'reports' && !!token,
     }
   );
 
   const { data: usersData, isLoading: isLoadingUsers, isError: isErrorUsers } = useQuery(
-    'all-users',
+    ['all-users', activeTab, token],
     async () => {
-      const response = await axios.get('/admin/users');
+      const response = await authAxios.get('/api/admin/users');
       return response.data;
     },
     {
-      enabled: activeTab === 'users',
+      enabled: activeTab === 'users' && !!token,
     }
   );
 
   const { data: allPapersData, isLoading: isLoadingAllPapers, isError: isErrorAllPapers } = useQuery(
-    ['all-papers', activeTab],
+    ['all-papers', activeTab, token],
     async () => {
-      const response = await axios.get('/admin/papers/all');
+      const response = await authAxios.get('/api/admin/papers/all');
       return response.data;
     },
-    { enabled: activeTab === 'allPapers' }
+    { enabled: activeTab === 'allPapers' && !!token }
   );
 
   const updatePaperStatus = useMutation(
-    ({ paperId, status }) => axios.patch(`/admin/papers/${paperId}/status`, { status }),
+    ({ paperId, status }) => authAxios.patch(`/api/admin/papers/${paperId}/status`, { status }),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['pending-papers']);
@@ -85,27 +101,33 @@ const AdminPanel = () => {
         queryClient.invalidateQueries(['admin-stats']);
         toast.success('Paper status updated!');
       },
+      onError: (error) => {
+        toast.error(error.response?.data?.message || 'Failed to update paper status.');
+      },
     }
   );
 
   const updateUserRole = useMutation(
-    ({ userId, role }) => axios.patch(`/admin/users/${userId}/role`, { role }),
+    ({ userId, role }) => authAxios.patch(`/api/admin/users/${userId}/role`, { role }),
     {
       onSuccess: (data) => {
         queryClient.invalidateQueries('all-users');
         toast.success(`User role updated to ${data.data.role}`);
       },
+      onError: (error) => {
+        toast.error(error.response?.data?.message || 'Failed to update user role.');
+      },
     }
   );
 
   const deletePaper = useMutation(
-    (paperId) => axios.delete(`/admin/papers/${paperId}`),
+    (paperId) => authAxios.delete(`/api/admin/papers/${paperId}`),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['pending-papers', 'reported-papers', 'admin-stats', 'all-papers']);
         toast.success('Paper deleted successfully!');
       },
-      onError: () => toast.error('Failed to delete paper.'),
+      onError: (error) => toast.error(error.response?.data?.message || 'Failed to delete paper.'),
     }
   );
 
@@ -583,6 +605,81 @@ const AdminPanel = () => {
                     <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
                     <p className="text-gray-600">Your search did not match any users.</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {activeTab === 'allPapers' && (
+              <div className="card p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">All Papers</h2>
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <input
+                        type="text"
+                        placeholder="Search by title or uploader..."
+                        value={paperSearch}
+                        onChange={(e) => setPaperSearch(e.target.value)}
+                        className="input-field pl-10 w-64"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {isLoadingAllPapers && (
+                    <div className="flex justify-center items-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+                        <span className="ml-3 text-gray-600">Loading all papers...</span>
+                    </div>
+                )}
+                {isErrorAllPapers && (
+                    <div className="text-center py-8 bg-error-50 text-error-700 rounded-lg">
+                        <AlertTriangle className="h-12 w-12 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Error Loading Papers</h3>
+                        <p>There was a problem fetching all papers.</p>
+                    </div>
+                )}
+                {filteredAllPapers && filteredAllPapers.length > 0 ? (
+                  <div className="space-y-4">
+                    {filteredAllPapers.map((paper) => (
+                      <div key={paper._id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <Link to={`/papers/${paper._id}`} className="hover:underline text-primary-600">
+                              <h3 className="font-semibold text-gray-900 mb-1">{paper.title}</h3>
+                            </Link>
+                            <p className="text-gray-600 text-sm mb-2">
+                              {paper.course} • {paper.courseCode} • {paper.university}
+                            </p>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span>Uploaded by {paper.uploader.username}</span>
+                              <span>•</span>
+                              <span>{new Date(paper.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 ml-4">
+                            <button
+                              onClick={() => alert('Edit functionality to be implemented.')}
+                              className="btn-secondary text-sm px-3 py-1"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePaper(paper._id)}
+                              className="btn-secondary text-error-600 hover:text-error-700 text-sm px-3 py-1"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  !isLoadingAllPapers && !isErrorAllPapers && <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">{paperSearch ? 'No papers found' : 'No papers available'}</h3>
+                    <p className="text-gray-600">There are no papers to display.</p>
                   </div>
                 )}
               </div>

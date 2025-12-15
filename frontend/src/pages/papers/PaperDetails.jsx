@@ -20,12 +20,15 @@ import {
   Share2
 } from 'lucide-react';
 
+import AuthModal from '@/components/auth/AuthModal';
+
 const PaperDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [otherReportReason, setOtherReportReason] = useState('');
 
@@ -37,22 +40,6 @@ const PaperDetails = () => {
     },
     {
       enabled: !!id,
-      select: (data) => {
-        if (data.uploader?.profilePhoto && !data.uploader.profilePhoto.startsWith('http')) {
-          const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '') || 'http://localhost:5000';
-          const photoPath = data.uploader.profilePhoto.startsWith('/')
-            ? data.uploader.profilePhoto.slice(1)
-            : data.uploader.profilePhoto;
-          return {
-            ...data,
-            uploader: {
-              ...data.uploader,
-              profilePhoto: `${apiBaseUrl}/${photoPath}`,
-            },
-          };
-        }
-        return data;
-      },
     }
   );
 
@@ -183,8 +170,7 @@ const PaperDetails = () => {
 
   const handleDownload = () => {
     if (!isAuthenticated) {
-      toast.error('Please sign in to download papers');
-      navigate('/login');
+      setShowAuthModal(true);
       return;
     }
     downloadMutation.mutate();
@@ -192,8 +178,7 @@ const PaperDetails = () => {
 
   const handleVote = () => {
     if (!isAuthenticated) {
-      toast.error('Please sign in to vote');
-      navigate('/login');
+      setShowAuthModal(true);
       return;
     }
     if (isAuthenticated && user?._id === paper.uploader?._id) {
@@ -208,6 +193,10 @@ const PaperDetails = () => {
 
   const handleReport = (e) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!reportReason) {
       toast.error('Please select a reason for reporting');
       return;
@@ -226,6 +215,10 @@ const PaperDetails = () => {
   };
 
   const handleShare = useCallback(() => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
     const shareUrl = window.location.href;
     const shareTitle = paper?.title || "Paper Details";
 
@@ -242,7 +235,7 @@ const PaperDetails = () => {
         console.error('Error copying to clipboard:', error);
       });
     }
-  }, [paper?.title]);
+  }, [paper?.title, isAuthenticated]);
 
   const paperTypeConfig = {
     mid: { label: 'Midterm', color: 'bg-blue-100 text-blue-800' },
@@ -405,8 +398,8 @@ const PaperDetails = () => {
                   <div className="card p-4">
                     <h3 className="font-semibold text-gray-900 mb-3">Uploaded By</h3>
                     <div className="flex items-center space-x-3">
-                      {paper.uploader?.profilePhoto ? (
-                        <img src={paper.uploader.profilePhoto} alt={paper.uploader.username} className="w-10 h-10 rounded-full object-cover" />
+                      {paper.uploader?.profilePicture ? (
+                        <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${paper.uploader.profilePicture.replace(/\\/g, '/')}`} alt={paper.uploader.username} className="w-10 h-10 rounded-full object-cover" />
                       ) : (
                         <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
                           <User className="h-5 w-5 text-primary-600" />
@@ -444,7 +437,7 @@ const PaperDetails = () => {
                           <ThumbsUp className="h-4 w-4 mr-2" />
                           Helpful Votes
                         </span>
-                        <span className="font-semibold">{paper.helpfulVotes}</span>
+                        <span className="font-semibold">{Array.isArray(paper.votedBy) ? paper.votedBy.length : paper.helpfulVotes || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -454,18 +447,18 @@ const PaperDetails = () => {
                     <button
                       onClick={handleDownload}
                       disabled={downloadMutation.isLoading}
-                      className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                     >
                       {downloadMutation.isLoading ? (
-                        <div className="flex items-center justify-center">
+                        <>
                           <div className="w-4 h-4 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
                           Downloading...
-                        </div>
+                        </>
                       ) : (
-                        <div className="flex items-center justify-center">
+                        <>
                           <Download className="h-5 w-5 mr-2" />
                           Download Paper
-                        </div>
+                        </>
                       )}
                     </button>
 
@@ -484,9 +477,17 @@ const PaperDetails = () => {
                       </button>
                     </div>
 
-                    {isAuthenticated && (
+                    {isAuthenticated ? (
                       <button
                         onClick={() => setShowReportModal(true)}
+                        className="w-full btn-secondary text-error-600 hover:text-error-700 flex items-center justify-center"
+                      >
+                        <Flag className="h-4 w-4 mr-2" />
+                        Report Issue
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setShowAuthModal(true)}
                         className="w-full btn-secondary text-error-600 hover:text-error-700 flex items-center justify-center"
                       >
                         <Flag className="h-4 w-4 mr-2" />
@@ -511,6 +512,8 @@ const PaperDetails = () => {
           </div>
         </div>
       </div>
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
 
       {/* Report Modal */}
       {showReportModal && (

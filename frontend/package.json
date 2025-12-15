@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "axios": "^1.5.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.193.0",

@@ -5,17 +5,24 @@ const messageSchema = new Schema({
   conversationId: {
     type: Schema.Types.ObjectId,
     ref: 'Conversation',
-    required: true
+    required: true,
   },
   sender: {
     type: Schema.Types.ObjectId,
-    ref: 'User', // This must match the name of your User model
-    required: true
+    ref: 'User',
+    required: true,
   },
   text: {
     type: String,
-    required: true,
-    trim: true
+    trim: true,
+  },
+  fileUrl: {
+    type: String,
+    trim: true,
+  },
+  fileName: {
+    type: String,
+    trim: true,
   },
 }, { timestamps: true });
 

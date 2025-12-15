@@ -1,24 +1,47 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, getUserProfile, getLeaderboard, updateUserProfile } = require('../userController.js');
-const { protect } = require('../middleware/auth');
+const {
+  getAllUsers,
+  getUserProfile,
+  getLeaderboard,
+  updateUserProfile,
+} = require('../userController.js');
+const { protect } = require('../middleware/auth.js');
+const multer = require('multer');
+const path = require('path');
 
+// Configure multer for profile picture uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+  },
+});
 
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed'), false);
+  }
+};
 
-// Import other controller functions like protect, admin, registerUser, loginUser etc.
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 
-// Get all users
-router.get('/', protect, getAllUsers);
-
-// Get leaderboard
-router.get('/leaderboard', protect, getLeaderboard);
-
-// Update user profile
-router.put('/:id', protect, updateUserProfile);
-
-// Public route for getting a user's profile
-router.get('/:id', getUserProfile);
-
-// Other routes like POST for registration, login, etc. would be here.
+router.route('/').get(protect, getAllUsers);
+router
+  .route('/:id')
+  .get(getUserProfile)
+  .put(protect, upload.single('profilePicture'), updateUserProfile);
+router.route('/leaderboard').get(getLeaderboard);
 
 module.exports = router;

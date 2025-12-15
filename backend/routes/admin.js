@@ -144,6 +144,31 @@ router.get('/users', [protect, admin], async (req, res) => {
   }
 });
 
+// Update user role
+router.patch('/users/:id/role', [protect, admin], async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    if (!['user', 'admin'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role specified' });
+    }
+
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({ message: 'User role updated successfully', user });
+  } catch (error) {
+    console.error('Update user role error:', error);
+    res.status(500).json({ message: 'Server error updating user role' });
+  }
+});
+
 
 
 

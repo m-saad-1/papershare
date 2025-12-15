@@ -192,10 +192,14 @@ We will let you know via email and/or a prominent notice on our service prior to
                 </p>
               </div>
               <div className="mt-4 md:mt-0">
-                <button className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors duration-200 text-sm md:text-base">
+                <a
+                  href="/privacy_policy.pdf"
+                  download="privacy-policy.pdf"
+                  className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors duration-200 text-sm md:text-base"
+                >
                   Download PDF Version
                   <ExternalLink className="ml-2 h-4 w-4" />
-                </button>
+                </a>
               </div>
             </div>
           </div>

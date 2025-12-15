@@ -58,7 +58,7 @@ const paperSchema = new mongoose.Schema({
       status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
-      default: 'approved'
+      default: 'pending' // Changed default from 'approved' to 'pending'
     },  visibility: {
     type: String,
     enum: ['public', 'private'],

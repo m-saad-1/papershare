@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Github, Twitter, Mail } from 'lucide-react';
+import { BookOpen, Github, Twitter, Mail, X } from 'lucide-react';
 
 const Footer = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="bg-gray-900 text-white relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
@@ -21,13 +23,21 @@ const Footer = () => {
               to enhance your learning experience.
             </p>
             <div className="flex space-x-4 mt-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-gray-400 hover:text-white transition-colors duration-200"
+              >
                 <Github className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="text-gray-400 hover:text-white transition-colors duration-200"
+              >
                 <Twitter className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">
+              </button>
+              <a
+                href="mailto:info@papershare.com"
+                className="text-gray-400 hover:text-white transition-colors duration-200">
                 <Mail className="h-5 w-5" />
               </a>
             </div>
@@ -92,6 +102,31 @@ const Footer = () => {
           </p>
         </div>
       </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 md:p-8 shadow-2xl w-full max-w-md m-4 text-gray-900">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Coming Soon!</h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-6">
+              We're working hard to connect our social media channels. Please check back later!
+            </p>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="w-full bg-primary-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </footer>
   );
 };

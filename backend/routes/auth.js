@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
     const payload = { user: { id: user.id, role: user.role } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' });
 
-    res.status(201).json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role, university: user.university, department: user.department } });
+    res.status(201).json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role, university: user.university, department: user.department, profilePicture: user.profilePicture } });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -53,7 +53,7 @@ router.post('/login', async (req, res) => {
     const payload = { user: { id: user.id, role: user.role } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' });
 
-    res.json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role, university: user.university, department: user.department } });
+    res.json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role, university: user.university, department: user.department, profilePicture: user.profilePicture } });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

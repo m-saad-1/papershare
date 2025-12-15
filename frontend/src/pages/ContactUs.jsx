@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom'; 
+import emailjs from '@emailjs/browser';
+import toast from 'react-hot-toast';
 import { 
   Mail, 
   MessageSquare, 
@@ -13,7 +15,8 @@ import {
   Twitter,
   Facebook,
   Linkedin,
-  Mail as MailIcon
+  Mail as MailIcon,
+  X
 } from 'lucide-react';
 
 const ContactUs = () => {
@@ -26,6 +29,7 @@ const ContactUs = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const categories = [
     { value: 'general', label: 'General Inquiry' },
@@ -46,19 +50,13 @@ const ContactUs = () => {
     {
       icon: MessageSquare,
       title: 'Live Chat',
-      details: ['Available Mon-Fri, 9AM-6PM PST', 'Click chat icon in bottom right'],
+      details: ['Currently unavailable', 'Coming Soon!'],
       color: 'text-green-600 bg-green-50'
-    },
-    {
-      icon: Phone,
-      title: 'Phone',
-      details: ['+1 (555) 123-4567', 'Mon-Fri, 9AM-5PM PST'],
-      color: 'text-purple-600 bg-purple-50'
     },
     {
       icon: MapPin,
       title: 'Office',
-      details: ['123 Education Street', 'San Francisco, CA 94107'],
+      details: ['Our team is fully remote', 'No physical office for visits'],
       color: 'text-orange-600 bg-orange-50'
     },
   ];
@@ -67,7 +65,7 @@ const ContactUs = () => {
     { platform: 'Twitter', icon: Twitter, url: '#', color: 'hover:bg-blue-50 hover:text-blue-600' },
     { platform: 'Facebook', icon: Facebook, url: '#', color: 'hover:bg-blue-50 hover:text-blue-600' },
     { platform: 'LinkedIn', icon: Linkedin, url: '#', color: 'hover:bg-blue-50 hover:text-blue-600' },
-    { platform: 'Email', icon: MailIcon, url: '#', color: 'hover:bg-red-50 hover:text-red-600' },
+    { platform: 'Email', icon: MailIcon, url: 'mailto:info@papershare.com', color: 'hover:bg-red-50 hover:text-red-600' },
   ];
 
   const handleChange = (e) => {
@@ -78,25 +76,38 @@ const ContactUs = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitStatus('success');
-      setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        category: 'general',
-        message: '',
+
+    // Replace with your actual EmailJS Service ID, Template ID, and Public Key
+    const serviceID = 'service_is9nloj';
+    const templateID = 'template_uvoz12c';
+    // ⬇️ IMPORTANT: Replace 'YOUR_PUBLIC_KEY' with your actual key from EmailJS
+    // You can find it in your EmailJS Dashboard -> Account -> API Keys
+    const publicKey = 'NT5y8I999thgokO72';
+
+    emailjs.sendForm(serviceID, templateID, e.target, publicKey)
+      .then((result) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setSubmitStatus('success');
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          category: 'general',
+          message: '',
+        });
+        // Reset status after 5 seconds
+        setTimeout(() => setSubmitStatus(null), 5000);
+      }, (error) => {
+        console.error('EmailJS error:', error.text);
+        setSubmitStatus('error');
+        toast.error('Failed to send message. Please try again later.');
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
-      
-      // Reset status after 5 seconds
-      setTimeout(() => setSubmitStatus(null), 5000);
-    }, 1500);
   };
 
   const faqItems = [
@@ -135,10 +146,35 @@ const ContactUs = () => {
         </div>
       </div>
 
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300">
+          <div className="bg-white rounded-xl p-6 md:p-8 shadow-2xl w-full max-w-md m-4 transform transition-all duration-300 scale-100 opacity-100">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Coming Soon!</h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <p className="text-gray-600 mb-6">
+              We're working hard to connect our social media channels. Please check back later!
+            </p>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="w-full bg-primary-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
-          {/* Contact Information */}
-          <div className="lg:col-span-1">
+          {/* Contact Information - Order changed for mobile */}
+          <div className="lg:col-span-1 order-2 lg:order-1">
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Get in Touch</h2>
@@ -179,14 +215,25 @@ const ContactUs = () => {
                   {socialLinks.map((social, index) => {
                     const Icon = social.icon;
                     return (
-                      <a
-                        key={index}
-                        href={social.url}
-                        className={`flex items-center px-3 md:px-4 py-2 rounded-lg border border-gray-200 ${social.color} transition-colors duration-200`}
-                      >
-                        <Icon className="h-4 w-4 md:h-5 md:w-5 mr-2" />
-                        <span className="text-sm font-medium">{social.platform}</span>
-                      </a>
+                      social.platform === 'Email' ? (
+                        <a
+                          key={index}
+                          href={social.url}
+                          className={`flex items-center px-3 md:px-4 py-2 rounded-lg border border-gray-200 ${social.color} transition-colors duration-200 w-full sm:w-auto justify-center`}
+                        >
+                          <Icon className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                          <span className="text-sm font-medium">{social.platform}</span>
+                        </a>
+                      ) : (
+                        <button
+                          key={index}
+                          onClick={() => setIsModalOpen(true)}
+                          className={`flex items-center px-3 md:px-4 py-2 rounded-lg border border-gray-200 ${social.color} transition-colors duration-200 w-full sm:w-auto justify-center`}
+                        >
+                          <Icon className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                          <span className="text-sm font-medium">{social.platform}</span>
+                        </button>
+                      )
                     );
                   })}
                 </div>
@@ -208,8 +255,8 @@ const ContactUs = () => {
             </div>
           </div>
 
-          {/* Contact Form */}
-          <div className="lg:col-span-2">
+          {/* Contact Form - Order changed for mobile */}
+          <div className="lg:col-span-2 order-1 lg:order-2">
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <div className="p-6 md:p-8">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Send us a message</h2>
@@ -224,6 +271,16 @@ const ContactUs = () => {
                     <div>
                       <h4 className="font-semibold text-green-800">Message sent successfully!</h4>
                       <p className="text-green-700 text-sm">We'll get back to you within 24 hours.</p>
+                    </div>
+                  </div>
+                )}
+
+                {submitStatus === 'error' && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
+                    <AlertCircle className="h-5 w-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-red-800">Something went wrong!</h4>
+                      <p className="text-red-700 text-sm">We couldn't send your message. Please try again or email us directly.</p>
                     </div>
                   </div>
                 )}
@@ -348,20 +405,22 @@ const ContactUs = () => {
             </div>
 
             {/* Additional Info */}
-            <div className="mt-6 md:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 md:p-6 text-center">
-                <div className="text-2xl md:text-3xl font-bold text-blue-700 mb-1">24h</div>
-                <div className="text-sm md:text-base text-blue-600 font-medium">Average Response Time</div>
+            {/* 
+              <div className="mt-6 md:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 md:p-6 text-center">
+                  <div className="text-2xl md:text-3xl font-bold text-blue-700 mb-1">24h</div>
+                  <div className="text-sm md:text-base text-blue-600 font-medium">Average Response Time</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 md:p-6 text-center">
+                  <div className="text-2xl md:text-3xl font-bold text-green-700 mb-1">98%</div>
+                  <div className="text-sm md:text-base text-green-600 font-medium">Customer Satisfaction</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 md:p-6 text-center">
+                  <div className="text-2xl md:text-3xl font-bold text-purple-700 mb-1">5,000+</div>
+                  <div className="text-sm md:text-base text-purple-600 font-medium">Students Helped</div>
+                </div>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 md:p-6 text-center">
-                <div className="text-2xl md:text-3xl font-bold text-green-700 mb-1">98%</div>
-                <div className="text-sm md:text-base text-green-600 font-medium">Customer Satisfaction</div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 md:p-6 text-center">
-                <div className="text-2xl md:text-3xl font-bold text-purple-700 mb-1">5,000+</div>
-                <div className="text-sm md:text-base text-purple-600 font-medium">Students Helped</div>
-              </div>
-            </div>
+            */}
           </div>
         </div>
       </div>

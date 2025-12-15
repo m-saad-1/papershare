@@ -42,6 +42,7 @@ const Chat = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     // Initial state for sidebarOpen based on screen size and recipientId
@@ -57,11 +58,10 @@ const Chat = () => {
   });
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const chatContainerRef = useRef(null);
-  const attachmentMenuRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const { user } = useAuth();
   const currentUserId = user?._id;
@@ -75,18 +75,6 @@ const Chat = () => {
     fetchConversations,
     {
       refetchInterval: 10000,
-      select: (data) => {
-                  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '') || 'http://localhost:5000';        return data.map(conv => {
-          const otherParticipant = conv.participants?.find(p => p._id !== currentUserId);
-          if (otherParticipant?.profilePhoto && !otherParticipant.profilePhoto.startsWith('http')) {
-            const photoPath = otherParticipant.profilePhoto.startsWith('/')
-              ? otherParticipant.profilePhoto.slice(1)
-              : otherParticipant.profilePhoto;
-            otherParticipant.profilePhoto = `${apiBaseUrl}/${photoPath}`;
-          }
-          return conv;
-        });
-      }
     }
   );
 
@@ -101,19 +89,6 @@ const Chat = () => {
     {
       enabled: !!recipientId,
       staleTime: Infinity,
-      select: (data) => {
-        if (!data) return null;
-                  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '') || 'http://localhost:5000';        const processedParticipants = data.participants.map(p => {
-          if (p.profilePhoto && !p.profilePhoto.startsWith('http')) {
-            const photoPath = p.profilePhoto.startsWith('/')
-              ? p.profilePhoto.slice(1)
-              : p.profilePhoto;
-            return { ...p, profilePhoto: `${apiBaseUrl}/${photoPath}` };
-          }
-          return p;
-        });
-        return { ...data, participants: processedParticipants };
-      }
     }
   );
 
@@ -136,23 +111,52 @@ const Chat = () => {
   // Handle sending message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !conversationId) return;
-
-    const text = newMessage;
+    if ((!newMessage.trim() && !selectedFile) || !conversationId) return;
+  
+    const formData = new FormData();
+    if (newMessage.trim()) {
+      formData.append('text', newMessage);
+    }
+    if (selectedFile) {
+      formData.append('file', selectedFile, selectedFile.name);
+    }
+  
+    // Store original values to restore them if sending fails
+    const originalText = newMessage;
+    const originalFile = selectedFile;
+  
     setNewMessage('');
-    // setIsTypingLocal(false); // Removed as per new requirement
-
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    
     try {
-      await apiClient.post(`/messages/${conversationId}/messages`, { text });
+      // Let Axios automatically set the 'Content-Type' header to 'multipart/form-data' with the correct boundary.
+      await apiClient.post(`/messages/${conversationId}/messages`, formData);
       queryClient.invalidateQueries(['messages', conversationId]);
       queryClient.invalidateQueries('conversations');
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     } catch (error) {
-      toast.error('Failed to send message.');
-      setNewMessage(text);
+      console.error("Failed to send message:", error.response?.data || error.message);
+      toast.error('Failed to send message. Please try again.');
+      setNewMessage(originalText); // Restore input fields on error
+      setSelectedFile(originalFile);
     }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // You can add more validation here (e.g., file size)
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Unsupported file type. Please select an image or PDF.');
+        return;
+      }
+      setSelectedFile(file);
+    }
+
   };
 
   const handleInputChange = (e) => {
@@ -161,17 +165,17 @@ const Chat = () => {
     // Removed setIsTypingLocal logic as it pertains to the current user's typing
   };
 
-  // Close attachment menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target)) {
-        setShowAttachmentMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // Helper to get file icon
+  const getFileIcon = (fileName) => {
+    if (!fileName) return <FaFile className="text-gray-500" />;
+    const extension = fileName.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+      return <FaImage className="text-blue-500" />;
+    }
+    if (extension === 'pdf') return <FaFilePdf className="text-red-500" />;
+    if (['mp3', 'wav'].includes(extension)) return <FaMusic className="text-purple-500" />;
+    return <FaFile className="text-gray-500" />;
+  }
 
   // Filter conversations based on search
   const filteredConversations = conversations.filter((conv) => {
@@ -183,19 +187,19 @@ const Chat = () => {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messages?.length > 0) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+    if (messages?.length > 0 && conversationId) {
+      // For initial load, scroll instantly without animation.
+      // The check for scrollTop ensures this only runs once on load.
+      if (chatContainerRef.current && chatContainerRef.current.scrollTop === 0) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      } else {
+        // For new messages, scroll smoothly.
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
     }
-  }, [messages]);
+  }, [messages, conversationId]);
 
   // Focus input on load
-  useEffect(() => {
-    if (conversationId && !areMessagesLoading) {
-      inputRef.current?.focus({ preventScroll: true });
-    }
-  }, [conversationId, areMessagesLoading]);
 
   // Handle responsive sidebar and initial sidebar state
   useEffect(() => {
@@ -219,33 +223,7 @@ const Chat = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [recipientId]); // Re-run when recipientId changes
 
-  // Prevent body scroll and scroll to top on mount
-  useEffect(() => {
-    // Prevent body scrolling
-    document.body.style.overflow = 'hidden';
-    
-    // Scroll to top of the page
-    window.scrollTo(0, 0);
-    
-    // Also scroll chat container to top on initial load
-    if (chatContainerRef.current && messages.length === 0) {
-      chatContainerRef.current.scrollTop = 0;
-    }
-    
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, []); // Empty dependency array ensures this runs only on mount
 
-  // Scroll chat container to bottom when messages load
-  useEffect(() => {
-    if (messages?.length > 0 && conversationId) {
-      // Small delay to ensure DOM is updated
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
-  }, [messages, conversationId]);
 
   if (isConversationLoading && recipientId) {
     return (
@@ -339,8 +317,8 @@ const Chat = () => {
                   >
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
-                      {otherParticipant.profilePhoto ? (
-                        <img src={otherParticipant.profilePhoto} alt={otherParticipant.username} className="w-11 h-11 rounded-full object-cover shadow-sm" />
+                      {otherParticipant.profilePicture ? (
+                        <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${otherParticipant.profilePicture.replace(/\\/g, '/')}`} alt={otherParticipant.username} className="w-11 h-11 rounded-full object-cover shadow-sm" />
                       ) : (
                         <div className="w-11 h-11 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-sm">
                           <span className="font-bold text-white text-sm">
@@ -406,8 +384,8 @@ const Chat = () => {
           </button>
           {recipient ? (
             <>
-              {recipient.profilePhoto ? (
-                <img src={recipient.profilePhoto} alt={recipient.username} className="w-9 h-9 rounded-full object-cover mr-3 shadow-sm" />
+              {recipient?.profilePicture ? (
+                <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${recipient.profilePicture.replace(/\\/g, '/')}`} alt={recipient.username} className="w-9 h-9 rounded-full object-cover mr-3 shadow-sm" />
               ) : (
                 <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mr-3 shadow-sm">
                   <span className="font-bold text-white text-sm">
@@ -456,8 +434,8 @@ const Chat = () => {
               <div className="hidden lg:flex items-center justify-between p-4 bg-white border-b border-gray-100 shadow-sm">
                 <div className="flex items-center">
                   <div className="relative">
-                    {recipient.profilePhoto ? (
-                      <img src={recipient.profilePhoto} alt={recipient.username} className="w-10 h-10 rounded-full object-cover mr-3 shadow-sm" />
+                    {recipient?.profilePicture ? (
+                      <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${recipient.profilePicture.replace(/\\/g, '/')}`} alt={recipient.username} className="w-10 h-10 rounded-full object-cover mr-3 shadow-sm" />
                     ) : (
                       <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center mr-3 shadow-sm">
                         <span className="font-bold text-white text-sm">
@@ -486,16 +464,16 @@ const Chat = () => {
               {/* Messages Container */}
               <div 
                 ref={chatContainerRef}
-                className="flex-[0.85] overflow-y-auto bg-gradient-to-b from-gray-50/50 to-gray-50/30"
+                className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-gray-50/30 min-h-0"
               >
-                <div className="p-3 lg:p-4">
+                <div className="p-3 lg:p-4 h-full">
                   {areMessagesLoading && messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
                       <FaSpinner className="animate-spin text-primary-600 mr-2" />
                       <span className="text-gray-600">Loading messages...</span>
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                    <div className="flex flex-col items-center justify-center text-center h-full">
                       <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-50 rounded-full flex items-center justify-center mb-4 shadow-sm">
                         <FaPaperPlane className="text-2xl text-primary-400" />
                       </div>
@@ -526,16 +504,17 @@ const Chat = () => {
                                 <div className={`flex items-end gap-2 ${isSender ? 'flex-row-reverse' : ''}`}>
                                   {/* Avatar for received messages */}
                                   {!isSender && (
-                                    recipient.profilePhoto ? (
-                                      <img src={recipient.profilePhoto} alt={recipient.username} className="w-7 h-7 rounded-full object-cover flex-shrink-0 shadow-sm" />
-                                    ) : (
-                                      <div className="w-7 h-7 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
-                                        <span className="text-xs font-bold text-white">
-                                          {recipient.username?.charAt(0).toUpperCase()}
-                                        </span>
-                                      </div>
-                                    )
-                                  )}
+                                                                      <div className="w-7 h-7 flex-shrink-0">
+                                                                        {msg.sender?.profilePicture ? (
+                                                                          <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${msg.sender.profilePicture.replace(/\\/g, '/')}`} alt={msg.sender.username} className="w-full h-full rounded-full object-cover shadow-sm" />
+                                                                        ) : (
+                                                                          <div className="w-full h-full bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-sm">
+                                                                            <span className="text-xs font-bold text-white">
+                                                                              {msg.sender?.username?.charAt(0).toUpperCase()}
+                                                                            </span>
+                                                                          </div>
+                                                                        )}
+                                                                      </div>                                  )}
                                   
                                   {/* Message Bubble */}
                                   <div
@@ -546,12 +525,33 @@ const Chat = () => {
                                         : 'bg-white text-gray-900 rounded-tl-none border border-gray-100'
                                       }
                                     `}
-                                  >
-                                    <p className="text-sm">{msg.text}</p>
+                                  > 
+                                    {msg.fileUrl ? (
+                                      <a
+                                        href={`${apiClient.defaults.baseURL.replace('/api', '')}/${msg.fileUrl.replace(/\\/g, '/')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-black/10"
+                                      >
+                                        <div className="text-2xl">
+                                          {getFileIcon(msg.fileName)}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <p className={`text-sm font-medium truncate ${isSender ? 'text-white' : 'text-gray-800'}`}>
+                                            {msg.fileName || 'Attachment'}
+                                          </p>
+                                          {msg.text && <p className="text-sm mt-1">{msg.text}</p>}
+                                        </div>
+                                      </a>
+                                    ) : (
+                                      <p className="text-sm">{msg.text}</p>
+                                    )}
+
                                     <div className={`text-xs mt-2 ${isSender ? 'text-primary-200' : 'text-gray-400'}`}>
                                       {format(new Date(msg.createdAt), 'HH:mm')}
                                     </div>
                                   </div>
+
                                 </div>
                               </div>
                             </div>
@@ -567,56 +567,43 @@ const Chat = () => {
               </div>
 
               {/* Message Input */}
-              <div className="mt-auto p-2 bg-white border-t border-gray-100 shadow-lg -mt-2">
+              <div className="mt-auto p-2 bg-white border-t border-gray-100 shadow-lg -mt-2 mb-16">
                 <form onSubmit={handleSendMessage} className="flex items-center gap-1.5">
-                  {/* Attachment Button */}
-                  <div className="relative" ref={attachmentMenuRef}>
-                    <button
-                      type="button"
-                      className="p-2 hover:bg-gray-50 rounded-xl text-gray-500 hover:text-gray-700 transition-colors"
-                      title="Attach file"
-                      onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                    >
-                      <FaPaperclip className="text-sm" />
-                    </button>
-                    
-                    {/* Attachment Menu Dropdown */}
-                    {showAttachmentMenu && (
-                      <div className="absolute bottom-full left-0 mb-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 min-w-[180px] z-50">
-                        <button
-                          type="button"
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
-                        >
-                          <FaImage className="text-blue-500" />
-                          <span>Photo</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
-                        >
-                          <FaFilePdf className="text-red-500" />
-                          <span>Document</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
-                        >
-                          <FaMusic className="text-purple-500" />
-                          <span>Audio</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
-                        >
-                          <FaFile className="text-gray-600" />
-                          <span>Other File</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {/* Attachment Button for PDF */}
+                  <button
+                    type="button"
+                    className="p-2 hover:bg-gray-50 rounded-xl text-gray-500 hover:text-gray-700 transition-colors"
+                    title="Attach PDF"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <FaPaperclip className="text-sm" />
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="application/pdf,image/jpeg,image/png,image/gif"
+                    onChange={handleFileChange}
+                  />
 
                   {/* Message Input */}
                   <div className="flex-1">
+                    {selectedFile ? (
+                      <div className="flex items-center justify-between px-3 py-2 bg-gray-100 rounded-xl">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          {getFileIcon(selectedFile.name)}
+                          <span className="truncate max-w-xs">{selectedFile.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedFile(null);
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                          className="p-1 hover:bg-gray-200 rounded-full"
+                        ><FaTimes className="text-xs text-gray-500" /></button>
+                      </div>
+                    ) : (
                     <input
                       ref={inputRef}
                       type="text"
@@ -626,12 +613,13 @@ const Chat = () => {
                       className="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-primary-500 focus:bg-white focus:shadow-sm transition-all"
                       autoComplete="off"
                     />
+                    )}
                   </div>
 
                   {/* Send Button */}
                   <button
                     type="submit"
-                    disabled={!newMessage.trim()}
+                    disabled={!newMessage.trim() && !selectedFile}
                     className="p-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                     title="Send message"
                   >
@@ -654,5 +642,6 @@ const Chat = () => {
     </div>
   );
 };
+
 
 export default Chat;

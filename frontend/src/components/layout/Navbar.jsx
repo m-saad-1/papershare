@@ -109,25 +109,37 @@ const Navbar = () => {
                 </button>
               </>
             ) : (
-              <div className="flex items-center space-x-3">
-                <Link
-                  to="/login"
-                  className="btn-secondary"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/register"
-                  className="btn-primary"
-                >
-                  Sign Up
-                </Link>
-              </div>
+              <>
+                {/* Desktop unauthenticated buttons */}
+                <div className="hidden md:flex items-center space-x-3">
+                  <Link to="/login" className="btn-secondary">
+                    Sign In
+                  </Link>
+                  <Link to="/register" className="btn-primary">
+                    Sign Up
+                  </Link>
+                </div>
+                {/* Mobile unauthenticated layout */}
+                <div className="md:hidden flex-1 flex justify-center">
+                  <Link
+                    to="/papers"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600"
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    Browse Papers
+                  </Link>
+                </div>
+                <div className="md:hidden">
+                  <Link to="/login" className="btn-primary">
+                    Sign In
+                  </Link>
+                </div>
+              </>
             )}
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile menu for authenticated users */}
         {isMobileMenuOpen && user && (
           <div className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-2">
@@ -138,14 +150,6 @@ const Navbar = () => {
               >
                 <User className="h-5 w-5 mr-3" />
                 Dashboard
-              </Link>
-              <Link
-                to="/messages"
-                className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <MessageSquare className="h-5 w-5 mr-3" />
-                Chat
               </Link>
               {navigation.map((item) => {
                 if (item.requiresAuth && !user) return null;
@@ -162,6 +166,14 @@ const Navbar = () => {
                   </Link>
                 );
               })}
+              <Link
+                to="/messages"
+                className="flex items-center px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <MessageSquare className="h-5 w-5 mr-3" />
+                Chat
+              </Link>
               {isAdmin && (
                 <Link
                   to="/admin"

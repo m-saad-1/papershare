@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import AuthModal from '@/components/auth/AuthModal';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiClient from '@/apiClient';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -49,7 +50,7 @@ const SearchPapers = () => {
       params.append('sortBy', sortField);
       params.append('sortOrder', sortOrder);
 
-      const response = await axios.get(`/api/papers?${params.toString()}`);
+      const response = await apiClient.get(`/papers?${params.toString()}`);
       return response.data;
     },
     {
@@ -405,52 +406,51 @@ const PaperCard = ({ paper }) => {
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const userId = user?._id || user?.id;
+  const hasVoted = paper.votedBy?.includes(userId);
 
   const voteMutation = useMutation(
-    ({ paperId, isVoting }) => axios.put(`/papers/${paperId}/vote`, { vote: isVoting }),
+    ({ paperId, isVoting }) => apiClient.put(`/papers/${paperId}/vote`, { vote: isVoting }),
     {
       onMutate: async ({ paperId, isVoting }) => {
-        // Cancel any outgoing refetches
-        await queryClient.cancelQueries('papers');
+        await queryClient.cancelQueries(['papers']);
+        const previousPapersData = queryClient.getQueryData(['papers']);
 
-        // Snapshot the previous value
-        const previousPapersData = queryClient.getQueryData('papers');
+        queryClient.setQueryData(['papers'], (oldData) => {
+          if (!oldData) return oldData;
 
-        // Optimistically update to the new value
-        queryClient.setQueryData('papers', (oldData) => {
-          if (!oldData) return;
+          const newPages = oldData.pages.map((page) => ({
+            ...page,
+            papers: page.papers.map((p) => {
+              if (p._id === paperId) {
+                const newVotedBy = isVoting
+                  ? [...(p.votedBy || []), userId]
+                  : (p.votedBy || []).filter((id) => id !== userId);
+                return {
+                  ...p,
+                  votedBy: newVotedBy,
+                  votes: newVotedBy.length,
+                };
+              }
+              return p;
+            }),
+          }));
 
-          const newPapers = oldData.papers.map((p) => {
-            if (p._id === paperId) {
-              const userId = user?._id || user?.id;
-              const currentVotes = p.helpfulVotes || 0;
-              const currentVoters = Array.isArray(p.votedBy) ? p.votedBy : [];
-
-              return {
-                ...p,
-                helpfulVotes: isVoting ? currentVotes + 1 : Math.max(0, currentVotes - 1),
-                votedBy: isVoting
-                  ? [...currentVoters, userId]
-                  : currentVoters.filter(voterId => voterId !== userId),
-              };
-            }
-            return p;
-          });
-
-          return { ...oldData, papers: newPapers };
+          return { ...oldData, pages: newPages };
         });
 
-        // Return a context object with the snapshotted value
         return { previousPapersData };
       },
       onError: (err, variables, context) => {
-        // Rollback on error
-        queryClient.setQueryData('papers', context.previousPapersData);
-        toast.error(err.response?.data?.message || 'Failed to update vote.');
+        if (context.previousPapersData) {
+          queryClient.setQueryData(['papers'], context.previousPapersData);
+        }
+        toast.error('Something went wrong. Please try again.');
       },
       onSettled: () => {
-        // Invalidate to refetch and sync with the server
-        queryClient.invalidateQueries('papers');
+        queryClient.invalidateQueries(['papers']);
       },
     }
   );
@@ -458,107 +458,62 @@ const PaperCard = ({ paper }) => {
   const handleVote = (e) => {
     e.preventDefault(); // Prevent navigation if inside a link
     if (!isAuthenticated) {
-      toast.error('Please sign in to vote');
-      navigate('/login');
+      setShowAuthModal(true);
       return;
     }
-    const userId = user?._id || user?.id;
-    const hasVoted = paper.votedBy?.includes(userId);
     voteMutation.mutate({ paperId: paper._id, isVoting: !hasVoted });
   };
-
-  const hasVoted = isAuthenticated && paper.votedBy?.includes(user?._id || user?.id);
-
-  const getPaperTypeColor = (type) => {
-    switch (type) {
-      case 'mid': return 'bg-blue-100 text-blue-800';
-      case 'final': return 'bg-purple-100 text-purple-800';
-      case 'quiz': return 'bg-green-100 text-green-800';
-      case 'assignment': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPaperTypeLabel = (type) => {
-    switch (type) {
-      case 'mid': return 'Midterm';
-      case 'final': return 'Final';
-      case 'quiz': return 'Quiz';
-      case 'assignment': return 'Assignment';
-      default: return type;
-    }
-  };
-
   return (
-    <Link to={`/papers/${paper._id}`} className="block card group hover:shadow-lg transition-all duration-200">
-      <div className="p-6 h-full flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors duration-200 line-clamp-2 mb-1">
-              {paper.title}
-            </h3>
-            {paper.teacher && (
-              <p className="text-gray-500 text-sm mb-1">
-                Teacher: {paper.teacher}
-              </p>
-            )}
-            <p className="text-gray-600 text-sm">
-              {paper.course} • {paper.courseCode}
-            </p>
-          </div>
-          <FileText className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
-        </div>
-
-        <div className="flex items-center space-x-2 mb-4">
-          <span className={`badge ${getPaperTypeColor(paper.paperType)}`}>
-            {getPaperTypeLabel(paper.paperType)}
+    <>
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <Link to={`/papers/${paper._id}`} className="block card group hover:shadow-lg transition-all duration-200 p-6">
+        <div className="flex justify-between items-start">
+          <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors duration-200 pr-4">
+            {paper.title}
+          </h3>
+          <span className="text-xs font-medium bg-primary-100 text-primary-700 px-2 py-1 rounded-full whitespace-nowrap">
+            {paper.paperType}
           </span>
-          <span className="text-sm text-gray-500">•</span>
-          <span className="text-sm text-gray-500">{paper.year}</span>
+        </div>
+        {paper.teacher && (
+          <p className="text-xs text-gray-500 mt-2">
+            Teacher: {paper.teacher}
+          </p>
+        )}
+        <p className="text-sm text-gray-600 mt-2 truncate">
+          {paper.course} 
+          {paper.courseCode && ` • ${paper.courseCode}`}
+        </p>
+        <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+          <span className="truncate pr-2">{paper.university}</span>
+          <span className="truncate">{paper.department}</span>
         </div>
 
-        <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-          <span className="flex items-center">
-            <Building2 className="h-4 w-4 mr-1" />
-            {paper.university}
-          </span>
-          <span>{paper.department}</span>
-        </div>
-
-        <div className="flex items-center justify-between mt-auto">
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
+        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+          <div className="flex items-center space-x-3">
             <span className="flex items-center">
-              <Download className="h-4 w-4 mr-1" />
+              <Download className="h-4 w-4 mr-1.5" />
               {paper.downloadCount}
             </span>
-            <button
-              onClick={handleVote}
-              disabled={voteMutation.isLoading}
-              className={`flex items-center transition-colors duration-200 ${hasVoted ? 'text-primary-600' : 'hover:text-primary-600'}`}
-            >
-              <ThumbsUp className={`h-4 w-4 mr-1 ${hasVoted ? 'fill-current' : ''}`} />
-              {paper.helpfulVotes}
+            <button onClick={handleVote} className={`flex items-center space-x-1.5 hover:text-primary-600 ${hasVoted ? 'text-primary-600' : ''}`}>
+              <ThumbsUp className="h-4 w-4" />
+              <span>{Array.isArray(paper.votedBy) ? paper.votedBy.length : paper.helpfulVotes || 0}</span>
             </button>
             <span className="flex items-center">
-              <Eye className="h-4 w-4 mr-1" />
+              <Eye className="h-4 w-4 mr-1.5" />
               {paper.views || 0}
             </span>
-            {paper.visibility === 'private' && (
-              <span className="flex items-center bg-gray-200 text-gray-800 px-2 py-0.5 rounded-full text-xs">
-                <EyeOff className="h-3 w-3 mr-1" />
-                Private
-              </span>
-            )}
           </div>
-          <span
-            className="text-primary-600 hover:text-primary-700 font-medium text-sm group-hover:underline transition-colors duration-200"
-          >
-            View Details
-          </span>
+          <div className="flex items-center">
+            <span className="text-primary-600 hover:text-primary-700 font-medium text-xs group-hover:underline">
+              View Details
+            </span>
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </>
   );
 };
+
 
 export default SearchPapers;

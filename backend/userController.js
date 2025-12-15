@@ -34,7 +34,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
       batch: user.batch,
       role: user.role,
       bio: user.bio,
-
+      profilePicture: user.profilePicture,
       uploadCount: user.uploadCount,
       createdAt: user.createdAt,
     });
@@ -99,8 +99,18 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     user.department = req.body.department || user.department;
     user.semester = req.body.semester || user.semester;
     user.batch = req.body.batch || user.batch;
+    user.bio = req.body.bio || user.bio;
 
-
+    if (req.file) {
+      // If there's an old picture, delete it
+      if (user.profilePicture) {
+        const oldPath = path.join(__dirname, '..', 'uploads', path.basename(user.profilePicture));
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+      user.profilePicture = path.join('uploads', req.file.filename);
+    }
 
     const updatedUser = await user.save();
 
@@ -114,7 +124,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       batch: updatedUser.batch,
       role: updatedUser.role,
       bio: updatedUser.bio,
-
+      profilePicture: updatedUser.profilePicture,
       uploadCount: updatedUser.uploadCount,
       createdAt: updatedUser.createdAt,
     });

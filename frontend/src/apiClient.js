@@ -9,7 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    // Content-Type will be automatically set by Axios based on the data being sent
   },
   // withCredentials: true, // Use this if you need to send cookies with requests (e.g., for sessions)
 });

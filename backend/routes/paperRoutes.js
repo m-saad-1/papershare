@@ -5,8 +5,8 @@ const { body, validationResult } = require('express-validator');
 const Paper = require('../models/paper');
 const User = require('../models/user');
 const Download = require('../models/download');
-const { protect } = require('../middleware/auth');
-const { getPapersByUser } = require('../paperController.js');
+const { protect, softProtect, admin } = require('../middleware/auth');
+
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ router.get('/user/my-papers', protect, async (req, res) => {
     console.log('User in /user/my-papers:', req.user._id); // Log only the ID for brevity
     const papers = await Paper.find({ uploader: req.user._id })
       .sort({ createdAt: -1 })
-      .select('title course courseCode university department year downloadCount views status visibility paperType teacher');
+      .select('title course courseCode university department year downloadCount views status visibility paperType teacher votedBy helpfulVotes');
 
     res.json(papers);
   } catch (error) {
@@ -44,7 +44,17 @@ router.get('/user/my-downloads', protect, async (req, res) => {
 });
 
 // Public route for getting papers by a specific user ID
-router.get('/user/:userId', getPapersByUser);
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const papers = await Paper.find({ uploader: req.params.userId, status: 'approved', visibility: 'public' })
+      .sort({ createdAt: -1 });
+
+    res.json(papers);
+  } catch (error) {
+    console.error('Get papers by user ID error:', error);
+    res.status(500).json({ message: 'Server error fetching papers by user ID' });
+  }
+});
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -234,23 +244,133 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Admin: Get all pending papers
+router.get('/admin/pending', protect, admin, async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      university,
+      department,
+      course,
+      semester,
+      year,
+      paperType,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object for pending papers
+    const filter = { status: 'pending' };
+
+    if (university) filter.university = new RegExp(university, 'i');
+    if (department) filter.department = new RegExp(department, 'i');
+    if (course) filter.course = new RegExp(course, 'i');
+    if (semester) filter.semester = new RegExp(semester, 'i');
+    if (year) filter.year = parseInt(year);
+    if (paperType) filter.paperType = paperType;
+
+    // Text search
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    const sortOptions = {};
+    if (sortBy) {
+      sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    }
+
+    const options = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sort: sortOptions,
+      populate: 'uploader',
+      select: '-file.path'
+    };
+
+    const papers = await Paper.find(filter)
+      .sort(options.sort)
+      .limit(options.limit * 1)
+      .skip((options.page - 1) * options.limit)
+      .populate('uploader', 'username university department')
+      .exec();
+
+    const total = await Paper.countDocuments(filter);
+
+    res.json({
+      papers,
+      totalPages: Math.ceil(total / options.limit),
+      currentPage: options.page,
+      total
+    });
+
+  } catch (error) {
+    console.error('Get pending papers error:', error);
+    res.status(500).json({ message: 'Server error fetching pending papers' });
+  }
+});
+
+// Admin: Update paper status (approve/reject)
+router.patch('/admin/:id/status', protect, admin, [
+  body('status').isIn(['approved', 'rejected']).withMessage('Status must be approved or rejected')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const paper = await Paper.findById(req.params.id);
+
+    if (!paper) {
+      return res.status(404).json({ message: 'Paper not found' });
+    }
+
+    const { status } = req.body;
+
+    paper.status = status;
+    if (status === 'approved') {
+      paper.approvedAt = new Date();
+      paper.approvedBy = req.user._id;
+    } else if (status === 'rejected') {
+      paper.approvedAt = undefined; // Clear if previously approved
+      paper.approvedBy = undefined; // Clear if previously approved
+    }
+
+    const updatedPaper = await paper.save();
+
+    res.json({
+      message: `Paper ${status} successfully`,
+      paper: updatedPaper
+    });
+
+  } catch (error) {
+    console.error('Update paper status error:', error);
+    res.status(500).json({ message: 'Server error updating paper status' });
+  }
+});
+
 // Get single paper
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', softProtect, async (req, res) => {
   try {
     const paper = await Paper.findById(req.params.id)
-      .populate('uploader', 'username university department')
+      .populate('uploader', 'username university department profilePicture')
       .populate('reports.user', 'username');
 
     if (!paper) {
       return res.status(404).json({ message: 'Paper not found' });
     }
 
-    // Check visibility for pending papers
-    if (paper.status === 'pending') {
-      // If not authenticated (shouldn't happen with `protect`), or not admin, or not the uploader, deny access
-      if (req.user.role !== 'admin' && paper.uploader._id.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: 'You are not authorized to view this paper.' });
-      }
+    const isOwner = req.user && paper.uploader && req.user._id.toString() === paper.uploader._id.toString();
+    const isAdmin = req.user && req.user.role === 'admin';
+
+    if (paper.status !== 'approved' && !isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'You are not authorized to view this paper.' });
+    }
+    
+    if (paper.visibility === 'private' && !isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'This paper is private.' });
     }
 
     res.json(paper);

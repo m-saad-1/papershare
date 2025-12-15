@@ -28,6 +28,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { Crown, TrendingUp } from 'lucide-react';
+import { ThumbsUp } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, logout, token, isAdmin, updateUserContext } = useAuth();
@@ -46,6 +47,10 @@ const Dashboard = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [formError, setFormError] = useState(null);
+
+  const [profilePictureFile, setProfilePictureFile] = useState(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null);
+  const profilePictureInputRef = React.useRef(null);
 
   const modalRef = React.useRef(null);
 
@@ -69,8 +74,10 @@ const Dashboard = () => {
         department: user.department || '',
         semester: user.semester || '',
         batch: user.batch || '',
-
       });
+      if (user.profilePicture) {
+        setProfilePicturePreview(`${apiClient.defaults.baseURL.replace('/api', '')}/${user.profilePicture.replace(/\\/g, '/')}`);
+      }
     }
   }, [user]);
 
@@ -79,6 +86,14 @@ const Dashboard = () => {
       setActiveTab(location.state.activeTab);
     }
   }, [location.state]);
+
+  const handleProfilePictureChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfilePictureFile(file);
+      setProfilePicturePreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -99,7 +114,7 @@ const Dashboard = () => {
         toast.success('Profile updated successfully!');
         const updatedUser = data.data;
         updateUserContext(updatedUser);
-
+        setProfilePictureFile(null); // Clear the file input after successful upload
       },
       onError: (error) => {
         console.error("updateProfileMutation error:", error);
@@ -114,6 +129,10 @@ const Dashboard = () => {
     Object.keys(profileData).forEach(key => {
       formData.append(key, profileData[key]);
     });
+
+    if (profilePictureFile) {
+      formData.append('profilePicture', profilePictureFile);
+    }
 
     updateProfileMutation.mutate(formData);
   };
@@ -538,9 +557,17 @@ const Dashboard = () => {
             <div className="hidden lg:block lg:col-span-1">
               <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
                 <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                    <User className="h-6 w-6 text-primary-600" />
-                  </div>
+                  {profilePicturePreview ? (
+                    <img
+                      src={profilePicturePreview}
+                      alt="Profile"
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                      <User className="h-6 w-6 text-primary-600" />
+                    </div>
+                  )}
 
                   <div>
                     <p className="font-semibold text-gray-900">{user?.username}</p>
@@ -591,9 +618,17 @@ const Dashboard = () => {
                   <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary-600" />
-                      </div>
+                        {profilePicturePreview ? (
+                          <img
+                            src={profilePicturePreview}
+                            alt="Profile"
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                            <User className="h-5 w-5 text-primary-600" />
+                          </div>
+                        )}
                         <div>
                           <p className="font-semibold text-gray-900">{user?.username}</p>
                           <p className="text-xs text-gray-600">{user?.university}</p>
@@ -755,96 +790,80 @@ const Dashboard = () => {
                   ) : (isAdmin ? papers?.papers?.length > 0 : papers?.length > 0) ? (
                     <div className="space-y-3 lg:space-y-4">
                       {(isAdmin ? papers.papers : papers).map((paper) => (
-                        <Link to={`/papers/${paper._id}`} key={paper._id} className="block border border-gray-200 rounded-lg p-4 hover:border-primary-300 hover:bg-gray-50 transition-all">
-                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start space-x-2 lg:space-x-3">
-                                <FileText className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-gray-900 text-sm lg:text-base truncate">
-                                    {paper.title}
-                                  </h3>
-                                  {paper.teacher && (
-                                    <p className="text-gray-500 text-xs lg:text-sm mt-1">Teacher: {paper.teacher}</p>
-                                  )}
-                                  <p className="text-gray-600 text-xs lg:text-sm mt-1">
-                                    {paper.course} • {paper.courseCode} • {paper.department}
-                                  </p>
-
-                                  <div className="flex flex-wrap items-center gap-1 lg:gap-2 text-xs text-gray-500 mt-2">
-                                    <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                                      {paper.paperType}
-                                    </span>
-                                    <span>•</span>
-                                    <span>{paper.university}</span>
-                                    <span>•</span>
-                                    <span>{paper.year}</span>
-                                    <span>•</span>
-                                    <span className="flex items-center">
-                                      <Download className="h-3 w-3 mr-1" />
-                                      {paper.downloadCount}
-                                    </span>
-                                    <span>•</span>
-                                    <span className="flex items-center">
-                                      <Eye className="h-3 w-3 mr-1" />
-                                      {paper.views || 0}
-                                    </span>
-                                    <span>•</span>
-                                    {paper.visibility === 'private' ? (
-                                      <span className="flex items-center bg-gray-200 text-gray-800 px-2 py-0.5 rounded-full">
-                                        <EyeOff className="h-3 w-3 mr-1" />
-                                        Private
-                                      </span>
-                                    ) : (
-                                      <span className="flex items-center bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                                        <Eye className="h-3 w-3 mr-1" />
-                                        Public
-                                      </span>
-                                    )}
+                        <div key={paper._id} className="bg-white rounded-xl p-6 border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200 group">
+                          <div className="flex justify-between items-start">
+                            <Link to={`/papers/${paper._id}`} className="flex-1">
+                              <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors duration-200 pr-4 line-clamp-2">
+                                {paper.title}
+                              </h3>
+                            </Link>
+                            <div className="relative flex-shrink-0">
+                              <button
+                                onClick={(e) => handleMenuClick(e, paper._id)}
+                                className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                              >
+                                <MoreVertical className="h-5 w-5" />
+                              </button>
+                              {openMenuId === paper._id && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10 border border-gray-200">
+                                  <div className="py-1">
+                                    <button onClick={(e) => handleEdit(e, paper._id)} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                      <Edit className="h-4 w-4 mr-2" /> Edit
+                                    </button>
+                                    <button onClick={(e) => handleMakePrivate(e, paper._id, paper.visibility)} className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                      {paper.visibility === 'private' ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
+                                      {getVisibilityText(paper.visibility)}
+                                    </button>
+                                    <button onClick={(e) => handleDelete(e, paper._id)} className="w-full text-left flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50">
+                                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                    </button>
                                   </div>
                                 </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between lg:justify-end lg:space-x-3">
-                              <span className={`px-2 py-1 rounded-full text-xs flex items-center space-x-1 ${getStatusColor(paper.status)}`}>
-                                {getStatusIcon(paper.status)}
-                                <span className="hidden sm:inline">{getStatusText(paper.status)}</span>
-                              </span>
-                              <div className="relative">
-                                <button
-                                  onClick={(e) => handleMenuClick(e, paper._id)}
-                                  className="p-1 text-gray-400 hover:text-gray-500"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </button>
-                                {openMenuId === paper._id && (
-                                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10 border border-gray-200">
-                                    <div className="py-1">
-                                      <button
-                                        onClick={(e) => handleEdit(e, paper._id)}
-                                        className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                      >
-                                        <Edit className="h-4 w-4 mr-2" /> Edit
-                                      </button>
-                                      <button
-                                        onClick={(e) => handleMakePrivate(e, paper._id, paper.visibility)}
-                                        className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                      >
-                                        {getVisibilityText(paper.visibility)}
-                                      </button>
-                                      <button
-                                        onClick={(e) => handleDelete(e, paper._id)}
-                                        className="w-full text-left flex items-center px-4 py-2 text-sm text-error-600 hover:bg-error-50"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
-                        </Link>
+
+                          <div className="flex justify-between items-center mt-2">
+                            {paper.teacher && (
+                              <p className="text-xs text-gray-500">
+                                Teacher: {paper.teacher}
+                              </p>
+                            )}
+                            <div className="flex items-center space-x-2 ml-auto">
+                              <span className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${getStatusColor(paper.status)}`}>
+                                {getStatusText(paper.status)}
+                              </span>
+                              {paper.visibility === 'private' ? (
+                                <span className="flex items-center text-xs font-medium bg-gray-200 text-gray-800 px-2 py-1 rounded-full">
+                                  <EyeOff className="h-3 w-3 mr-1" /> Private
+                                </span>
+                              ) : (
+                                <span className="flex items-center text-xs font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                  <Eye className="h-3 w-3 mr-1" /> Public
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <p className="text-sm text-gray-600 mt-1 truncate">
+                            {paper.course} {paper.courseCode && `• ${paper.courseCode}`}
+                          </p>
+                          <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+                            <span className="truncate pr-2">{paper.university}</span>
+                            <span className="truncate">{paper.department}</span>
+                          </div>
+
+                          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+                            <div className="flex items-center space-x-4">
+                              <span className="flex items-center" title="Downloads"><Download className="h-4 w-4 mr-1.5" />{paper.downloadCount}</span>
+                              <span className="flex items-center" title="Helpful Votes"><ThumbsUp className="h-4 w-4 mr-1.5" />{Array.isArray(paper.votedBy) ? paper.votedBy.length : paper.helpfulVotes || 0}</span>
+                              <span className="flex items-center" title="Views"><Eye className="h-4 w-4 mr-1.5" />{paper.views || 0}</span>
+                            </div>
+                            <Link to={`/papers/${paper._id}`} className="text-primary-600 hover:text-primary-700 font-medium text-xs group-hover:underline">
+                              View Details
+                            </Link>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -920,6 +939,42 @@ const Dashboard = () => {
                   <h2 className="text-lg lg:text-xl font-semibold text-gray-900 mb-6">Account Settings</h2>
                   <form onSubmit={handleProfileSubmit}>
                     <div className="space-y-6">
+
+                      {/* Profile Picture Upload */}
+              <div className="pt-6 border-t border-gray-200">
+                <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-4">Profile Picture</h3>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    ref={profilePictureInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleProfilePictureChange}
+                  />
+                  {profilePicturePreview ? (
+                    <img
+                      src={profilePicturePreview}
+                      alt="Profile Preview"
+                      className="w-20 h-20 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
+                      <User className="w-10 h-10 text-gray-500" />
+                    </div>
+                  )}
+                  <div className='flex flex-col gap-2'>
+                    <button
+                      type="button"
+                      onClick={() => profilePictureInputRef.current.click()}
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Change Picture
+                    </button>
+                    {profilePictureFile && <p className="text-xs text-gray-500">New picture selected!</p>}
+                  </div>
+                </div>
+              </div>
+
 
                       <div className="pt-6 border-t border-gray-200">
                         <h3 className="text-base lg:text-lg font-medium text-gray-900 mb-4">Profile Information</h3>

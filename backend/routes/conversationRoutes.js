@@ -20,7 +20,7 @@ router.post('/', auth, async (req, res) => {
     // Find if a DM conversation already exists between the two users
     let conversation = await Conversation.findOne({
       participants: { $all: [loggedInUserId, recipientId], $size: 2 },
-    }).populate('participants', 'username email');
+    }).populate('participants', 'username email profilePicture');
 
     // If no conversation exists, create one
     if (!conversation) {
@@ -30,7 +30,7 @@ router.post('/', auth, async (req, res) => {
       await newConversation.save();
       // Populate the participants' details for the new conversation
       conversation = await Conversation.findById(newConversation._id)
-        .populate('participants', 'username email');
+        .populate('participants', 'username email profilePicture');
     }
 
     res.status(200).json(conversation);
