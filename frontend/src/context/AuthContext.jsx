@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import apiClient from '@/apiClient';
+import apiClient from '@/api/axios';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();

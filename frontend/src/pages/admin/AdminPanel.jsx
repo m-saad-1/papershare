@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
-import axios from 'axios';
+import api from '@/api/axios';
 import { useAuth } from '@/context/AuthContext'; // Import useAuth
 import {
   Shield,
@@ -31,22 +31,10 @@ const AdminPanel = () => {
   const [paperSearch, setPaperSearch] = useState('');
   const { token } = useAuth(); // Get the token from AuthContext
 
-  // Axios instance with auth header
-  const authAxios = useMemo(() => {
-    if (token) {
-      return axios.create({
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    }
-    return axios; // Fallback to default axios if no token (shouldn't happen for protected routes)
-  }, [token]);
-
   const { data: stats } = useQuery(
     ['admin-stats', token],
     async () => {
-      const response = await authAxios.get('/api/admin/stats');
+      const response = await api.get('/admin/stats');
       return response.data;
     },
     { enabled: !!token } // Only fetch if token exists
@@ -55,7 +43,7 @@ const AdminPanel = () => {
   const { data: pendingPapers, isLoading: isLoadingPending, isError: isErrorPending } = useQuery(
     ['pending-papers', activeTab, token], // Re-run query when activeTab or token changes
     async () => {
-      const response = await authAxios.get('/api/admin/papers/pending');
+      const response = await api.get('/admin/papers/pending');
       return response.data;
     },
     { enabled: activeTab === 'pending' && !!token } // Only fetch when this tab is active and token exists
@@ -64,7 +52,7 @@ const AdminPanel = () => {
   const { data: reportedPapers, isLoading: isLoadingReported, isError: isErrorReported } = useQuery(
     ['reported-papers', activeTab, token],
     async () => {
-      const response = await authAxios.get('/api/admin/papers/reported');
+      const response = await api.get('/admin/papers/reported');
       return response.data;
     },
     {
@@ -75,7 +63,7 @@ const AdminPanel = () => {
   const { data: usersData, isLoading: isLoadingUsers, isError: isErrorUsers } = useQuery(
     ['all-users', activeTab, token],
     async () => {
-      const response = await authAxios.get('/api/admin/users');
+      const response = await api.get('/admin/users');
       return response.data;
     },
     {
@@ -86,14 +74,14 @@ const AdminPanel = () => {
   const { data: allPapersData, isLoading: isLoadingAllPapers, isError: isErrorAllPapers } = useQuery(
     ['all-papers', activeTab, token],
     async () => {
-      const response = await authAxios.get('/api/admin/papers/all');
+      const response = await api.get('/admin/papers/all');
       return response.data;
     },
     { enabled: activeTab === 'allPapers' && !!token }
   );
 
   const updatePaperStatus = useMutation(
-    ({ paperId, status }) => authAxios.patch(`/api/admin/papers/${paperId}/status`, { status }),
+    ({ paperId, status }) => api.patch(`/admin/papers/${paperId}/status`, { status }),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['pending-papers']);
@@ -108,7 +96,7 @@ const AdminPanel = () => {
   );
 
   const updateUserRole = useMutation(
-    ({ userId, role }) => authAxios.patch(`/api/admin/users/${userId}/role`, { role }),
+    ({ userId, role }) => api.patch(`/admin/users/${userId}/role`, { role }),
     {
       onSuccess: (data) => {
         queryClient.invalidateQueries('all-users');
@@ -121,7 +109,7 @@ const AdminPanel = () => {
   );
 
   const deletePaper = useMutation(
-    (paperId) => authAxios.delete(`/api/admin/papers/${paperId}`),
+    (paperId) => api.delete(`/admin/papers/${paperId}`),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['pending-papers', 'reported-papers', 'admin-stats', 'all-papers']);
@@ -227,6 +215,7 @@ const AdminPanel = () => {
 
             <div className="card p-6">
               <div className="flex items-center">
+.
                 <div className="p-3 bg-success-100 rounded-lg">
                   <Users className="h-6 w-6 text-success-600" />
                 </div>
