@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "backend/server.js",
   "scripts": {
-    "start": "npm run start --prefix backend"
+    "start": "node backend/server.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
