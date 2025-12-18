@@ -5,9 +5,9 @@ mongoose.set('strictQuery', true);
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s
+      family: 4, // Force IPv4
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
