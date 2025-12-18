@@ -6,9 +6,10 @@ mongoose.set('strictQuery', true);
 const connectDB = async () => {
   try {
 const conn = await mongoose.connect(process.env.MONGODB_URI, {
-  serverSelectionTimeoutMS: 5000, // Timeout after 5s
-  family: 4 // Force IPv4 for broad compatibility
-});
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      family: 4, // Force Mongoose to use IPv4
+    });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
