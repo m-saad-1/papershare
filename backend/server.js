@@ -21,7 +21,7 @@ app.use(express.json());
 // Enable CORS
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://69413efb77d349743f0c1490--papershareee.netlify.app'
+  'https://papershareee.netlify.app'
 ];
 
 app.use(cors({
