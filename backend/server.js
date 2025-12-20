@@ -45,9 +45,9 @@ if (!fs.existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 // Create HTTP server and initialize Socket.IO
-const http = require('http');
-const server = http.createServer(app);
-initSocket(server);
+// const http = require('http');
+// const server = http.createServer(app);
+// initSocket(server); // WebSocket functionality like Socket.IO is not supported in Vercel's standard serverless functions.
 
 // Mount routers
 app.use('/api/auth', require('./routes/auth'));
@@ -76,4 +76,5 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 
-server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+// server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+module.exports = app;
