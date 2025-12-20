@@ -18,21 +18,19 @@ const app = express();
 // Body parser
 app.use(express.json());
 
-// Enable CORS
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://papershareee.netlify.app'
-];
-
+// CORS configuration
+const allowedOrigins = ['https://papershareee.netlify.app', 'http://localhost:5173'];
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
     }
+    return callback(null, true);
   },
-  credentials: true
+  credentials: true,
 }));
 
 // Create uploads directory if it doesn't exist
