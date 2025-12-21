@@ -4,7 +4,7 @@ import axios from 'axios';
 // In a Vite-based project, environment variables are accessed via `import.meta.env`.
 // For security, only variables prefixed with `VITE_` are exposed to the client.
 // See: https://vitejs.dev/guide/env-and-mode.html
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api';
+const API_BASE_URL = "/api";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
