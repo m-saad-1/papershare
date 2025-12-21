@@ -1,7 +1,7 @@
-const express = require('express');
-const Paper = require('../models/paper');
-const User = require('../models/user');
-const { protect, admin } = require('../middleware/auth');
+import express from 'express';
+import Paper from '../models/paper.js';
+import User from '../models/user.js';
+import { protect, admin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -197,4 +197,4 @@ router.get('/papers/all', [protect, admin], async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

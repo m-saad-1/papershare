@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
-const asyncHandler = require('express-async-handler');
-const User = require('../models/user');
+import jwt from 'jsonwebtoken';
+import asyncHandler from 'express-async-handler';
+import User from '../models/user.js';
 
 /**
  * @desc    Middleware to protect routes
@@ -70,4 +70,4 @@ const softProtect = asyncHandler(async (req, res, next) => {
   next();
 });
 
-module.exports = { protect, admin, softProtect };
+export { protect, admin, softProtect };

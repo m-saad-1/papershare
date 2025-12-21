@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }) => {
     // Ensure other fields have default values
     processedData.semester = processedData.semester || '';
     processedData.batch = processedData.batch || '';
+    processedData.profilePicture = processedData.profilePicture || '/images/default-profile.png'; // Provide a default profile picture path
 
     return processedData;
   };
@@ -72,8 +73,11 @@ export const AuthProvider = ({ children }) => {
       const { token: newToken, user: newUserData } = response.data;
 
       localStorage.setItem('token', newToken);
+      console.log('AuthContext: Token set in localStorage', newToken);
       setToken(newToken);
+      console.log('AuthContext: setToken called with', newToken);
       setUser(processUserData(newUserData));
+      console.log('AuthContext: setUser called with processed data', processUserData(newUserData));
       toast.success('Account created successfully!');
       return { success: true };
     } catch (error) {

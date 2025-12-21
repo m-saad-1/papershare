@@ -1,11 +1,11 @@
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const { body, validationResult } = require('express-validator');
-const Paper = require('../models/paper');
-const User = require('../models/user');
-const Download = require('../models/download');
-const { protect, softProtect, admin } = require('../middleware/auth');
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import { body, validationResult } from 'express-validator';
+import Paper from '../models/paper.js';
+import User from '../models/user.js';
+import Download from '../models/download.js';
+import { protect, softProtect, admin } from '../middleware/auth.js';
 
 
 const router = express.Router();
@@ -159,10 +159,10 @@ router.post('/upload', protect, upload.single('file'), ...[
 
 // Get all papers with filtering and pagination
 router.get('/', async (req, res) => {
-  console.log("Reached /api/papers public route handler");
+  console.log("--- Reached GET /api/papers handler ---"); // Debug log
   console.log("Request query:", req.query);
   try {
-    const {
+    let {
       page = 1,
       limit = 10,
       search,
@@ -174,17 +174,24 @@ router.get('/', async (req, res) => {
       paperType,
       status = 'approved',
       sortBy = 'createdAt', // Default sort by createdAt
-      sortOrder = 'desc' // Default sort order to descending
+      sortOrder = 'desc', // Default sort order to descending
+      visibility, // Get visibility from query, no default here yet
     } = req.query;
 
-    let { visibility } = req.query;
+    // Handle sortBy with leading '-' for descending order
+    if (sortBy.startsWith('-')) {
+      sortBy = sortBy.substring(1); // Remove the '-'
+      sortOrder = 'desc';
+    }
+
+    // Set default visibility if not provided or invalid
     const validVisibilityOptions = ['public', 'private'];
     if (!visibility || !validVisibilityOptions.includes(visibility)) {
-      visibility = 'public'; // Default to public if invalid or not provided
+      visibility = 'public';
     }
 
     // Build filter object
-    const filter = { status: 'approved', visibility };
+    const filter = { status, visibility };
     
     if (university) filter.university = new RegExp(university, 'i');
     if (department) filter.department = new RegExp(department, 'i');
@@ -201,9 +208,8 @@ router.get('/', async (req, res) => {
     console.log("Constructed filter:", filter);
 
     const sortOptions = {};
-    if (sortBy) {
-      sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-    }
+    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    
     console.log("Constructed sortOptions:", sortOptions);
 
     const options = {
@@ -235,7 +241,7 @@ router.get('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get papers error:', error.message, error.stack);
+    console.error('Get papers error:', error); // Log full error object
     res.status(500).json({
       message: 'Server error fetching papers',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
@@ -453,7 +459,7 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'You are not authorized to delete this paper' });
     }
 
-    await paper.remove();
+    await paper.deleteOne();
 
     res.json({ message: 'Paper deleted successfully' });
   } catch (error) {
@@ -645,4 +651,4 @@ router.get('/route-check', (req, res) => {
   res.json({ message: 'Paper routes are working!', timestamp: new Date() });
 });
 
-module.exports = router;
+export default router;

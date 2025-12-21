@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // Suppress Mongoose deprecation warning
 mongoose.set('strictQuery', true);
@@ -18,4 +18,4 @@ const conn = await mongoose.connect(process.env.MONGODB_URI, {
   }
 };
 
-module.exports = connectDB;
+export default connectDB;

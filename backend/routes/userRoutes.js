@@ -1,14 +1,14 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const {
+import {
   getAllUsers,
   getUserProfile,
   getLeaderboard,
   updateUserProfile,
-} = require('../userController.js');
-const { protect } = require('../middleware/auth.js');
-const multer = require('multer');
-const path = require('path');
+} from '../userController.js';
+import { protect } from '../middleware/auth.js';
+import multer from 'multer';
+import path from 'path';
 
 // Configure multer for profile picture uploads
 const storage = multer.diskStorage({
@@ -44,4 +44,4 @@ router
   .put(protect, upload.single('profilePicture'), updateUserProfile);
 router.route('/leaderboard').get(getLeaderboard);
 
-module.exports = router;
+export default router;

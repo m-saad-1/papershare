@@ -1,7 +1,7 @@
-const asyncHandler = require('express-async-handler');
-const User = require('./models/user.js');
-const path = require('path');
-const fs = require('fs');
+import asyncHandler from 'express-async-handler';
+import User from './models/user.js';
+import path from 'path';
+import fs from 'fs';
 
 // Other user controller functions like registerUser, loginUser, etc. would be here.
 
@@ -134,4 +134,4 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { getAllUsers, getUserProfile, getLeaderboard, updateUserProfile };
+export { getAllUsers, getUserProfile, getLeaderboard, updateUserProfile };

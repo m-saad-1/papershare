@@ -1,11 +1,10 @@
-const asyncHandler = require('express-async-handler');
-const Conversation = require('../models/Conversation');
-const Message = require('../models/Message');
-const User = require('../models/user');
-const multer = require('multer'); // Import multer
-const path = require('path');     // Import path
-
-const crypto = require('crypto');
+import asyncHandler from 'express-async-handler';
+import Conversation from '../models/Conversation.js';
+import Message from '../models/Message.js';
+import User from '../models/user.js';
+import multer from 'multer';
+import path from 'path';
+import crypto from 'crypto';
 
 // Multer storage configuration
 const storage = multer.diskStorage({
@@ -190,7 +189,7 @@ const findOrCreateConversation = asyncHandler(async (req, res) => {
   res.status(200).json(populatedConversation);
 });
 
-module.exports = {
+export {
   getConversations,
   getMessages,
   sendMessage,

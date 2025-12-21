@@ -23,7 +23,9 @@ const Register = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Register.jsx: isAuthenticated changed to', isAuthenticated);
     if (isAuthenticated) {
+      console.log('Register.jsx: Navigating to /dashboard due to isAuthenticated change.');
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
@@ -93,11 +95,15 @@ const Register = () => {
     setIsLoading(true);
 
     const { confirmPassword, ...submitData } = formData;
+    console.log('Register.jsx: Attempting to register user with data:', submitData);
     const result = await register(submitData);
+    console.log('Register.jsx: register function returned:', result);
     
     if (result.success) {
+      console.log('Register.jsx: Registration successful, navigating to /dashboard.');
       navigate('/dashboard');
     } else {
+      console.log('Register.jsx: Registration failed or returned success: false.');
       setIsLoading(false);
     }
   };

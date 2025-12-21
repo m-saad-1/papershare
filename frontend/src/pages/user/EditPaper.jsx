@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import axios from 'axios';
+import apiClient from '@/apiClient';
 import toast from 'react-hot-toast';
 import {
   Loader2,
@@ -37,7 +37,7 @@ const EditPaper = () => {
   const { data: paperData, isLoading, isError } = useQuery(
     ['paper', paperId],
     async () => {
-      const response = await axios.get(`/papers/${paperId}`);
+      const response = await apiClient.get(`/papers/${paperId}`);
       return response.data;
     },
     {
@@ -69,7 +69,7 @@ const EditPaper = () => {
             ...updatedPaper,
             tags: updatedPaper.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
           };
-      return axios.patch(`/papers/${paperId}`, dataToSend)
+      return apiClient.patch(`/papers/${paperId}`, dataToSend)
     },
     {
       onSuccess: () => {

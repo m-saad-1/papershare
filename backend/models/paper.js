@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const paperSchema = new mongoose.Schema({
   title: {
@@ -134,4 +134,4 @@ paperSchema.index({
 // Index for filtering
 paperSchema.index({ university: 1, department: 1, course: 1, semester: 1, year: 1, paperType: 1 });
 
-module.exports = mongoose.model('Paper', paperSchema);
+export default mongoose.model('Paper', paperSchema);

@@ -1,17 +1,17 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { protect } = require('../middleware/auth');
-const {
+import { protect } from '../middleware/auth.js';
+import {
   getConversations,
   getMessages,
   sendMessage,
   findOrCreateConversation,
   upload, // Import multer middleware
-} = require('../controllers/messageController');
+} from '../controllers/messageController.js';
 
 router.route('/conversations').get(protect, getConversations).post(protect, findOrCreateConversation);
 router.route('/:conversationId/messages').get(protect, getMessages);
 router.route('/:conversationId/messages').post(protect, upload.single('file'), sendMessage);
 
 
-module.exports = router;
+export default router;

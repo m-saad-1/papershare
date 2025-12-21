@@ -1,8 +1,8 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/user');
-const { protect } = require('../middleware/auth');
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/user.js';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -25,10 +25,12 @@ router.post('/register', async (req, res) => {
     const payload = { user: { id: user.id, role: user.role } };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' });
 
-    res.status(201).json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role, university: user.university, department: user.department, profilePicture: user.profilePicture } });
+    // Send successful response
+    res.status(201).json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role, university: user.university, department: user.department } });
+
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error during user registration:', err); // Log full error object
+    return res.status(500).send('Server error');
   }
 });
 
@@ -107,4 +109,4 @@ router.post('/change-password', protect, async (req, res) => {
 
 
 
-module.exports = router;
+export default router;

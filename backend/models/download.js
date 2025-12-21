@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const downloadSchema = new mongoose.Schema({
   user: {
@@ -17,4 +17,4 @@ const downloadSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('Download', downloadSchema);
+export default mongoose.model('Download', downloadSchema);

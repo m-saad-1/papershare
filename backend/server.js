@@ -1,11 +1,13 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const connectDB = require('./config/db');
-const { initSocket } = require('./socket/socket.js');
-const path = require('path');
-const jwt = require('jsonwebtoken');
-const fs = require('fs');
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import connectDB from './config/db.js';
+// import { initSocket } from './socket/socket.js'; // Assuming socket.js is ES module too
+import path from 'path';
+import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Load env vars
 dotenv.config();
@@ -22,11 +24,14 @@ app.use(express.json());
 app.use(cors({
   origin: true,
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
 }));
 
 // Handle preflight requests for all routes
 app.options("*", cors());
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -43,15 +48,21 @@ app.use('/uploads', express.static(uploadsDir));
 // initSocket(server); // WebSocket functionality like Socket.IO is not supported in Vercel's standard serverless functions.
 
 // Mount routers
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/userRoutes'));
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/userRoutes.js';
+import paperRoutes from './routes/paperRoutes.js';
+import adminRoutes from './routes/admin.js';
+import messageRoutes from './routes/messages.js';
+
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use((req, res, next) => {
   console.log("Request to:", req.path);
   next();
 });
-app.use('/api/papers', require('./routes/paperRoutes'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/messages', require('./routes/messages')); // Added for chat functionality
+app.use('/api/papers', paperRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/messages', messageRoutes); // Added for chat functionality
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -69,5 +80,4 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 8080;
 
-// server.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-module.exports = app;
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
