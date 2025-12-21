@@ -1,12 +1,26 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "https://papershare-qf5n.vercel.app/api/:path*"
+      "src": "backend/server.js",
+      "use": "@vercel/node"
     },
     {
-      "source": "/:path*",
-      "destination": "/:path*"
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/server.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
