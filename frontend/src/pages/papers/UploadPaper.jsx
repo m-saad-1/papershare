@@ -1,492 +1,456 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useMutation } from 'react-query';
-import axios from 'axios';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useMutation, useQuery } from 'react-query';
+import toast from 'react-hot-toast';
+import { Upload, FileText, BookOpen, StickyNote, Link as LinkIcon } from 'lucide-react';
 import apiClient from '../../apiClient';
 import { useAuth } from '@/context/AuthContext';
-import toast from 'react-hot-toast';
-import {
-  Upload,
-  FileText,
-  X,
-  Plus,
-  BookOpen,
-  Building2,
-  Calendar
-} from 'lucide-react';
+
+const MANUAL_DEPARTMENT_VALUE = '__manual__';
+
+const REGISTERED_UNIVERSITIES = [
+  'IMSciences Peshawar',
+  'UET Peshawar',
+  'University of Peshawar',
+  'Sarhad University',
+  'NUML Peshawar',
+  'FAST Peshawar',
+];
+
+const UNIVERSITY_DEPARTMENTS = {
+  'IMSciences Peshawar': [
+    'BS - Hospitality & Tourism',
+    'BBA - Business Administration',
+    'BS - Accounting and Finance',
+    'BS - Business Analytics',
+    'MBA - Business Administration',
+    'MS - Management',
+    'MS - Islamic Business & Finance',
+    'MS - Project Management',
+    'PhD - Islamic Business & Finance',
+    'PhD - Management',
+    'BS - Computer Science',
+    'BS - Software Engineering',
+    'BS - Artificial Intelligence',
+    'BS - Data Science',
+    'BS - Cyber Security',
+    'MS - Computer Science',
+    'MS - Data Science',
+    'MS - Data Science (Specialization in Biomedicine)',
+    'PhD - Computer Science',
+    'BS - Social Sciences',
+    'BS - Psychology',
+    'BS - Economics',
+    'BS - English',
+    'M.Phil - English (Linguistics)',
+    'MS - Governance & Public Policy',
+    'MS - Development Studies',
+    'MS - Economics',
+    'PhD - Economics',
+  ],
+};
+
+const normalizeUniversity = (value = '') => {
+  if (value === 'IMS Peshawar') {
+    return 'IMSciences Peshawar';
+  }
+
+  return value;
+};
+
+const getDepartmentOptions = (university) => {
+  const normalizedUniversity = normalizeUniversity(university);
+  return UNIVERSITY_DEPARTMENTS[normalizedUniversity] || [];
+};
+
+const createInitialFormState = (overrides = {}) => ({
+  title: '',
+  description: '',
+  university: '',
+  department: '',
+  course: '',
+  courseCode: '',
+  semester: '',
+  year: new Date().getFullYear(),
+  tags: '',
+  universityOption: '',
+  customUniversity: '',
+  departmentOption: '',
+  customDepartment: '',
+  ...overrides,
+});
 
 const UploadPaper = () => {
   const navigate = useNavigate();
-  const { user, token } = useAuth(); // 1. Get token from AuthContext
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    university: user?.university || '',
-    department: user?.department || '',
-    course: '',
-    courseCode: '',
-    teacher: '',
-    semester: '',
-    year: new Date().getFullYear(),
-    paperType: 'mid',
-    tags: '',
-  });
-  const [file, setFile] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { token, updateUserContext } = useAuth();
+  const requestedPaperId = searchParams.get('requestId');
 
- const uploadMutation = useMutation(
-  (data) => {
-    // When sending FormData, we must let the browser set the 'Content-Type' header.
-    // This ensures the 'boundary' part of the header is correctly generated.
-    // We only need to manually add the Authorization header.
-    return apiClient.post('/papers/upload', data, {
-      headers: { 
-        // DO NOT set 'Content-Type': 'multipart/form-data' manually.
-        'Authorization': `Bearer ${token}` },
-    });
-  },
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab === 'notes' ? 'notes' : 'paper');
+  const [paperFile, setPaperFile] = useState(null);
+  const [noteFile, setNoteFile] = useState(null);
+
+  const [paperForm, setPaperForm] = useState(
+    createInitialFormState({
+      teacher: '',
+      paperType: 'mid',
+    })
+  );
+  const [noteForm, setNoteForm] = useState(createInitialFormState());
+
+  const { data: linkedRequestData } = useQuery(
+    ['requested-paper-details', requestedPaperId],
+    async () => {
+      const response = await apiClient.get(`/requests/${requestedPaperId}`);
+      return response.data?.request;
+    },
     {
-      onSuccess: () => {
-        toast.success('Paper uploaded successfully! It will be reviewed by our team.');
-        navigate('/dashboard');
-      },
-      onError: (error) => {
-        console.error('Upload error details:', error.response?.data); // Log full error data
-        toast.error(error.response?.data?.message || 'Failed to upload paper');
+      enabled: !!requestedPaperId && activeTab === 'paper',
+      onSuccess: (request) => {
+        if (!request) return;
+
+        const mappedPaperType = ['mid', 'final', 'quiz', 'assignment'].includes(request.examType)
+          ? request.examType
+          : 'mid';
+
+        const matchedUniversity = REGISTERED_UNIVERSITIES.includes(request.university)
+          ? request.university
+          : 'Other';
+        const departmentOptions = getDepartmentOptions(request.university);
+        const matchedDepartment = departmentOptions.includes(request.department)
+          ? request.department
+          : MANUAL_DEPARTMENT_VALUE;
+
+        setPaperForm((previous) => ({
+          ...previous,
+          title: request.title?.trim() || `${request.courseName} ${String(request.examType || '').toUpperCase()} ${request.year}`,
+          description: request.description || previous.description,
+          university: request.university,
+          department: request.department,
+          course: request.courseName,
+          paperType: mappedPaperType,
+          year: Number(request.year) || previous.year,
+          universityOption: matchedUniversity,
+          customUniversity: matchedUniversity === 'Other' ? request.university : '',
+          departmentOption: matchedDepartment,
+          customDepartment: matchedDepartment === MANUAL_DEPARTMENT_VALUE ? request.department : '',
+        }));
       },
     }
   );
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
+  const paperDepartmentOptions = getDepartmentOptions(
+    paperForm.universityOption === 'Other' ? paperForm.customUniversity : paperForm.universityOption
+  );
+  const noteDepartmentOptions = getDepartmentOptions(
+    noteForm.universityOption === 'Other' ? noteForm.customUniversity : noteForm.universityOption
+  );
+
+  const handleUniversitySelection = (setForm) => (event) => {
+    const universityOption = event.target.value;
+
+    setForm((previous) => ({
+      ...previous,
+      universityOption,
+      customUniversity: universityOption === 'Other' ? previous.customUniversity : '',
+      departmentOption: '',
+      customDepartment: '',
     }));
   };
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      if (selectedFile.type !== 'application/pdf') {
-        toast.error('Please select a PDF file');
-        return;
-      }
-      if (selectedFile.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
-        return;
-      }
-      setFile(selectedFile);
+  const handleCustomUniversityChange = (setForm) => (event) => {
+    const customUniversity = event.target.value;
+
+    setForm((previous) => ({
+      ...previous,
+      customUniversity,
+      departmentOption: '',
+      customDepartment: '',
+    }));
+  };
+
+  const handleDepartmentSelection = (setForm) => (event) => {
+    const departmentOption = event.target.value;
+
+    setForm((previous) => ({
+      ...previous,
+      departmentOption,
+      customDepartment: departmentOption === MANUAL_DEPARTMENT_VALUE ? previous.customDepartment : '',
+    }));
+  };
+
+  const paperMutation = useMutation(
+    async (data) => apiClient.post('/papers/upload', data, { headers: { Authorization: `Bearer ${token}` } }),
+    {
+      onSuccess: async () => {
+        toast.success('Paper submitted for admin approval');
+        const me = await apiClient.get('/auth/me').catch(() => null);
+        if (me?.data?.user) updateUserContext(me.data.user);
+        navigate('/dashboard');
+      },
+      onError: (error) => toast.error(error.response?.data?.message || 'Failed to upload paper'),
     }
-  };
+  );
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      if (droppedFile.type !== 'application/pdf') {
-        toast.error('Please drop a PDF file');
-        return;
-      }
-      if (droppedFile.size > 10 * 1024 * 1024) {
-        toast.error('File size must be less than 10MB');
-        return;
-      }
-      setFile(droppedFile);
+  const notesMutation = useMutation(
+    async (data) => apiClient.post('/notes/upload', data, { headers: { Authorization: `Bearer ${token}` } }),
+    {
+      onSuccess: async () => {
+        toast.success('Notes submitted for approval');
+        const me = await apiClient.get('/auth/me').catch(() => null);
+        if (me?.data?.user) updateUserContext(me.data.user);
+        navigate('/dashboard', { state: { activeTab: 'notes' } });
+      },
+      onError: (error) => toast.error(error.response?.data?.message || 'Failed to upload notes'),
     }
-  };
+  );
 
-  const removeFile = () => {
-    setFile(null);
-  };
-
-  const handleSubmit = (e) => {
+  const submitPaper = (e) => {
     e.preventDefault();
-    
-    if (!file) {
-      toast.error('Please select a PDF file to upload');
-      return;
+    if (!paperFile) return toast.error('Please select a PDF file');
+
+    const resolvedUniversity = paperForm.universityOption === 'Other'
+      ? paperForm.customUniversity.trim()
+      : normalizeUniversity(paperForm.universityOption);
+    const resolvedDepartment = paperForm.departmentOption === MANUAL_DEPARTMENT_VALUE
+      ? paperForm.customDepartment.trim()
+      : paperForm.departmentOption;
+
+    if (!resolvedUniversity) {
+      return toast.error('Please select or enter your university');
     }
 
-    // Add a guard to ensure the token is available before submitting
-    if (!token) {
-      toast.error('You must be logged in to upload a paper. Please wait or log in again.');
-      return;
+    if (!resolvedDepartment) {
+      return toast.error('Please select or enter your department/program');
     }
 
-    // Create FormData here, right before mutation
     const data = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      data.append(key, value);
+    Object.entries(paperForm).forEach(([key, value]) => {
+      if (!['universityOption', 'customUniversity', 'departmentOption', 'customDepartment'].includes(key)) {
+        data.append(key, value);
+      }
     });
-    if (file) {
-      data.append('file', file);
+    data.set('university', resolvedUniversity);
+    data.set('department', resolvedDepartment);
+    if (linkedRequestData?._id) {
+      data.append('linkedRequestId', linkedRequestData._id);
     }
-    uploadMutation.mutate(data);
+    data.append('file', paperFile);
+    paperMutation.mutate(data);
   };
 
-  const universities = [
-    'University of Technology',
-    'State University',
-    'City College',
-    'National University',
-    'Technical Institute',
-    'Business School',
-    'Engineering College'
-  ];
+  const submitNotes = (e) => {
+    e.preventDefault();
+    if (!noteFile) return toast.error('Please select a notes file');
 
-  const departments = [
-    'Computer Science',
-    'Electrical Engineering',
-    'Mechanical Engineering',
-    'Business Administration',
-    'Mathematics',
-    'Physics',
-    'Chemistry',
-    'Biology'
-  ];
+    const resolvedUniversity = noteForm.universityOption === 'Other'
+      ? noteForm.customUniversity.trim()
+      : normalizeUniversity(noteForm.universityOption);
+    const resolvedDepartment = noteForm.departmentOption === MANUAL_DEPARTMENT_VALUE
+      ? noteForm.customDepartment.trim()
+      : noteForm.departmentOption;
 
-  const paperTypes = [
-    { value: 'mid', label: 'Midterm Exam' },
-    { value: 'final', label: 'Final Exam' },
-    { value: 'quiz', label: 'Quiz' },
-    { value: 'assignment', label: 'Assignment' },
-  ];
+    if (!resolvedUniversity) {
+      return toast.error('Please select or enter your university');
+    }
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+    if (!resolvedDepartment) {
+      return toast.error('Please select or enter your department/program');
+    }
+
+    const data = new FormData();
+    Object.entries(noteForm).forEach(([key, value]) => {
+      if (!['universityOption', 'customUniversity', 'departmentOption', 'customDepartment'].includes(key)) {
+        data.append(key, value);
+      }
+    });
+    data.set('university', resolvedUniversity);
+    data.set('department', resolvedDepartment);
+    data.append('file', noteFile);
+    notesMutation.mutate(data);
+  };
+
+  const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Past Paper</h1>
-          <p className="text-gray-600">
-            Share your past papers with the student community. All uploads are reviewed before publishing.
-          </p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-fluid-2xl font-bold text-gray-900 mb-2">Upload</h1>
+          <p className="text-fluid-base text-gray-600">Easy switch between Paper and Notes upload forms.</p>
         </div>
 
-        <div className="card p-6">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Basic Information */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                <BookOpen className="h-5 w-5 mr-2 text-primary-600" />
-                Paper Information
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                    Paper Title *
-                  </label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    required
-                    value={formData.title}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="e.g., Final Exam - Data Structures and Algorithms"
-                  />
-                </div>
+        <div className="card p-3 mb-4 sm:mb-6 flex gap-2">
+          <button type="button" onClick={() => setActiveTab('paper')} className={`min-h-touch px-4 py-2 rounded-lg text-sm font-medium flex items-center ${activeTab === 'paper' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+            <FileText className="h-4 w-4 mr-1" /> Paper
+          </button>
+          <button type="button" onClick={() => setActiveTab('notes')} className={`min-h-touch px-4 py-2 rounded-lg text-sm font-medium flex items-center ${activeTab === 'notes' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+            <StickyNote className="h-4 w-4 mr-1" /> Notes
+          </button>
+        </div>
 
-                <div className="md:col-span-2">
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    rows={3}
-                    value={formData.description}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="Provide additional context about this paper..."
-                  />
+        {activeTab === 'paper' ? (
+          <div className="card p-4 sm:p-6">
+            <h2 className="text-fluid-xl font-semibold text-gray-900 mb-4 sm:mb-5 flex items-center"><BookOpen className="h-5 w-5 mr-2 text-primary-600" />Upload Past Paper</h2>
+            {linkedRequestData?._id && (
+              <div className="mb-5 rounded-lg border border-primary-200 bg-primary-50 p-4">
+                <div className="flex items-center gap-2 text-primary-700 font-semibold text-sm">
+                  <LinkIcon className="h-4 w-4" />
+                  Linked Request Fulfillment
                 </div>
-
+                <p className="mt-1 text-sm text-primary-900 font-medium">
+                  {linkedRequestData.title || `${linkedRequestData.courseName} (${String(linkedRequestData.examType || '').toUpperCase()} ${linkedRequestData.year})`}
+                </p>
+                <p className="text-xs text-primary-800 mt-1">
+                  Requester: {linkedRequestData.requester?.username || 'Unknown'}
+                </p>
+                <p className="text-xs text-primary-700 mt-1">
+                  This submission will be sent to admin with request linkage for verification before approval.
+                </p>
+              </div>
+            )}
+            <form onSubmit={submitPaper} className="space-y-4 sm:space-y-6">
+              <input className="input-field" placeholder="Title" value={paperForm.title} onChange={(e) => setPaperForm((previous) => ({ ...previous, title: e.target.value }))} required />
+              <textarea className="input-field" rows={3} placeholder="Description" value={paperForm.description} onChange={(e) => setPaperForm((previous) => ({ ...previous, description: e.target.value }))} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label htmlFor="course" className="block text-sm font-medium text-gray-700 mb-2">
-                    Course Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="course"
-                    name="course"
-                    required
-                    value={formData.course}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="e.g., Data Structures and Algorithms"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="courseCode" className="block text-sm font-medium text-gray-700 mb-2">
-                    Course Code
-                  </label>
-                  <input
-                    type="text"
-                    id="courseCode"
-                    name="courseCode"
-                    required
-                    value={formData.courseCode}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="e.g., CS-201"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="teacher" className="block text-sm font-medium text-gray-700 mb-2">
-                    Teacher / Instructor
-                  </label>
-                  <input
-                    type="text"
-                    id="teacher"
-                    name="teacher"
-                    value={formData.teacher}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="e.g., Dr. Alan Turing"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="university" className="block text-sm font-medium text-gray-700 mb-2">
-                    <Building2 className="h-4 w-4 inline mr-1" />
-                    University *
-                  </label>
-                  <select
-                    id="university"
-                    name="university"
-                    required
-                    value={formData.university}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
+                  <select className="input-field" value={paperForm.universityOption} onChange={handleUniversitySelection(setPaperForm)} required>
                     <option value="">Select University</option>
-                    {universities.map((uni) => (
-                      <option key={uni} value={uni}>{uni}</option>
-                    ))}
+                    {REGISTERED_UNIVERSITIES.map((university) => <option key={university} value={university}>{university}</option>)}
+                    <option value="Other">Other</option>
                   </select>
+                  {paperForm.universityOption === 'Other' && (
+                    <input
+                      className="input-field mt-2"
+                      placeholder="Enter your university"
+                      value={paperForm.customUniversity}
+                      onChange={handleCustomUniversityChange(setPaperForm)}
+                      required
+                    />
+                  )}
                 </div>
 
                 <div>
-                  <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
-                    Department *
-                  </label>
                   <select
-                    id="department"
-                    name="department"
-                    required
-                    value={formData.department}
-                    onChange={handleChange}
                     className="input-field"
+                    value={paperForm.departmentOption}
+                    onChange={handleDepartmentSelection(setPaperForm)}
+                    required
+                    disabled={!paperForm.universityOption || (paperForm.universityOption === 'Other' && !paperForm.customUniversity.trim())}
                   >
                     <option value="">Select Department</option>
-                    {departments.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
+                    {paperDepartmentOptions.map((department) => <option key={department} value={department}>{department}</option>)}
+                    <option value={MANUAL_DEPARTMENT_VALUE}>Enter Department Manually</option>
                   </select>
+                  {paperForm.departmentOption === MANUAL_DEPARTMENT_VALUE && (
+                    <input
+                      className="input-field mt-2"
+                      placeholder="Enter your department"
+                      value={paperForm.customDepartment}
+                      onChange={(e) => setPaperForm((previous) => ({ ...previous, customDepartment: e.target.value }))}
+                      list="paper-department-suggestions"
+                      required
+                    />
+                  )}
+                  <datalist id="paper-department-suggestions">
+                    {paperDepartmentOptions.map((department) => <option key={department} value={department} />)}
+                  </datalist>
                 </div>
 
-                <div>
-                  <label htmlFor="semester" className="block text-sm font-medium text-gray-700 mb-2">
-                    Semester *
-                  </label>
-                  <input
-                    type="text"
-                    id="semester"
-                    name="semester"
-                    required
-                    value={formData.semester}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="e.g., Fall 2023"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
-                    <Calendar className="h-4 w-4 inline mr-1" />
-                    Year *
-                  </label>
-                  <select
-                    id="year"
-                    name="year"
-                    required
-                    value={formData.year}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
-                    {years.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="paperType" className="block text-sm font-medium text-gray-700 mb-2">
-                    Paper Type *
-                  </label>
-                  <select
-                    id="paperType"
-                    name="paperType"
-                    required
-                    value={formData.paperType}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
-                    {paperTypes.map(type => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
-                    Tags
-                  </label>
-                  <input
-                    type="text"
-                    id="tags"
-                    name="tags"
-                    value={formData.tags}
-                    onChange={handleChange}
-                    className="input-field"
-                    placeholder="e.g., algorithms, data-structures, programming"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Separate tags with commas
-                  </p>
-                </div>
+                <input className="input-field" placeholder="Course" value={paperForm.course} onChange={(e) => setPaperForm((previous) => ({ ...previous, course: e.target.value }))} required />
+                <input className="input-field" placeholder="Course Code" value={paperForm.courseCode} onChange={(e) => setPaperForm((previous) => ({ ...previous, courseCode: e.target.value }))} required />
+                <input className="input-field" placeholder="Teacher" value={paperForm.teacher} onChange={(e) => setPaperForm((previous) => ({ ...previous, teacher: e.target.value }))} />
+                <input className="input-field" placeholder="Semester" value={paperForm.semester} onChange={(e) => setPaperForm((previous) => ({ ...previous, semester: e.target.value }))} required />
+                <select className="input-field" value={paperForm.year} onChange={(e) => setPaperForm((previous) => ({ ...previous, year: Number(e.target.value) }))}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select>
+                <select className="input-field" value={paperForm.paperType} onChange={(e) => setPaperForm((previous) => ({ ...previous, paperType: e.target.value }))}>
+                  <option value="mid">Midterm</option>
+                  <option value="final">Final</option>
+                  <option value="quiz">Quiz</option>
+                  <option value="assignment">Assignment</option>
+                </select>
               </div>
-            </div>
-
-            {/* File Upload */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-primary-600" />
-                File Upload
-              </h2>
-
-              {!file ? (
-                <div
-                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-200 cursor-pointer ${
-                    isDragging
-                      ? 'border-primary-400 bg-primary-50'
-                      : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50'
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => document.getElementById('file').click()}
-                >
-                  <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-6">
-                    <Upload className="h-12 w-12 text-gray-400" />
-                    <div className="text-left">
-                      <p className="font-medium text-gray-900">
-                        <span className="text-primary-600 font-semibold">Click to upload</span> or drag and drop
-                      </p>
-                      <p className="text-sm text-gray-500">PDF only (Max 10MB)</p>
-                    </div>
-                  </div>
-                  <input
-                    type="file"
-                    id="file"
-                    name="file"
-                    accept=".pdf"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
+              <input className="input-field" placeholder="Tags (comma separated)" value={paperForm.tags} onChange={(e) => setPaperForm((previous) => ({ ...previous, tags: e.target.value }))} />
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 min-h-touch flex items-center justify-center">
+                <input type="file" accept=".pdf,application/pdf" className="input-field w-full" onChange={(e) => setPaperFile(e.target.files?.[0] || null)} required />
+              </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
+                <button type="button" className="btn-secondary min-h-touch" onClick={() => navigate('/dashboard')}>Cancel</button>
+                <button type="submit" className="btn-primary min-h-touch" disabled={paperMutation.isLoading || !token}>
+                  <Upload className="h-4 w-4 mr-2 inline" />{paperMutation.isLoading ? 'Uploading...' : 'Upload Paper'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="card p-4 sm:p-6">
+            <h2 className="text-fluid-xl font-semibold text-gray-900 mb-4 sm:mb-5 flex items-center"><StickyNote className="h-5 w-5 mr-2 text-primary-600" />Upload Notes</h2>
+            <form onSubmit={submitNotes} className="space-y-4 sm:space-y-6">
+              <input className="input-field" placeholder="Title" value={noteForm.title} onChange={(e) => setNoteForm((previous) => ({ ...previous, title: e.target.value }))} required />
+              <textarea className="input-field" rows={3} placeholder="Description" value={noteForm.description} onChange={(e) => setNoteForm((previous) => ({ ...previous, description: e.target.value }))} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                  <select className="input-field" value={noteForm.universityOption} onChange={handleUniversitySelection(setNoteForm)} required>
+                    <option value="">Select University</option>
+                    {REGISTERED_UNIVERSITIES.map((university) => <option key={university} value={university}>{university}</option>)}
+                    <option value="Other">Other</option>
+                  </select>
+                  {noteForm.universityOption === 'Other' && (
+                    <input
+                      className="input-field mt-2"
+                      placeholder="Enter your university"
+                      value={noteForm.customUniversity}
+                      onChange={handleCustomUniversityChange(setNoteForm)}
+                      required
+                    />
+                  )}
                 </div>
-              ) : (
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-8 w-8 text-primary-600" />
-                      <div>
-                        <p className="font-medium text-gray-900">{file.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {(file.size / (1024 * 1024)).toFixed(2)} MB
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={removeFile}
-                      className="text-gray-400 hover:text-gray-500 transition-colors duration-200"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
+
+                <div>
+                  <select
+                    className="input-field"
+                    value={noteForm.departmentOption}
+                    onChange={handleDepartmentSelection(setNoteForm)}
+                    required
+                    disabled={!noteForm.universityOption || (noteForm.universityOption === 'Other' && !noteForm.customUniversity.trim())}
+                  >
+                    <option value="">Select Department</option>
+                    {noteDepartmentOptions.map((department) => <option key={department} value={department}>{department}</option>)}
+                    <option value={MANUAL_DEPARTMENT_VALUE}>Enter Department Manually</option>
+                  </select>
+                  {noteForm.departmentOption === MANUAL_DEPARTMENT_VALUE && (
+                    <input
+                      className="input-field mt-2"
+                      placeholder="Enter your department"
+                      value={noteForm.customDepartment}
+                      onChange={(e) => setNoteForm((previous) => ({ ...previous, customDepartment: e.target.value }))}
+                      list="note-department-suggestions"
+                      required
+                    />
+                  )}
+                  <datalist id="note-department-suggestions">
+                    {noteDepartmentOptions.map((department) => <option key={department} value={department} />)}
+                  </datalist>
                 </div>
-              )}
-            </div>
 
-            {/* Submission Guidelines */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Submission Guidelines</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Ensure the paper is in PDF format and under 10MB</li>
-                <li>• Verify that the paper content matches the provided information</li>
-                <li>• Do not upload copyrighted material without permission</li>
-                <li>• All papers are reviewed by our team before publishing</li>
-              </ul>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={uploadMutation.isLoading || !file || !token}
-                className="btn-primary disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {uploadMutation.isLoading ? (
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
-                    Uploading...
-                  </div>
-                ) : !token && file ? (
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 border-t-2 border-white border-solid rounded-full animate-spin mr-2"></div>
-                    Authenticating...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Paper
-                  </div>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
+                <input className="input-field" placeholder="Course" value={noteForm.course} onChange={(e) => setNoteForm((previous) => ({ ...previous, course: e.target.value }))} required />
+                <input className="input-field" placeholder="Course Code" value={noteForm.courseCode} onChange={(e) => setNoteForm((previous) => ({ ...previous, courseCode: e.target.value }))} />
+                <input className="input-field" placeholder="Semester" value={noteForm.semester} onChange={(e) => setNoteForm((previous) => ({ ...previous, semester: e.target.value }))} required />
+                <select className="input-field" value={noteForm.year} onChange={(e) => setNoteForm((previous) => ({ ...previous, year: Number(e.target.value) }))}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select>
+              </div>
+              <input className="input-field" placeholder="Tags (comma separated)" value={noteForm.tags} onChange={(e) => setNoteForm((previous) => ({ ...previous, tags: e.target.value }))} />
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 min-h-touch flex items-center justify-center">
+                <input type="file" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg,image/webp" className="input-field w-full" onChange={(e) => setNoteFile(e.target.files?.[0] || null)} required />
+              </div>
+              <div className="flex flex-col sm:flex-row justify-end gap-3">
+                <button type="button" className="btn-secondary min-h-touch" onClick={() => navigate('/notes')}>Cancel</button>
+                <button type="submit" className="btn-primary min-h-touch" disabled={notesMutation.isLoading || !token}>
+                  <Upload className="h-4 w-4 mr-2 inline" />{notesMutation.isLoading ? 'Uploading...' : 'Upload Notes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );

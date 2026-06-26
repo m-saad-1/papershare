@@ -6,8 +6,6 @@ mongoose.set('strictQuery', true);
 const connectDB = async () => {
   try {
 const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       family: 4, // Force Mongoose to use IPv4
     });
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.jsx';
 import { Eye, EyeOff, UserPlus, BookOpen, CheckCircle, XCircle } from 'lucide-react';
 
@@ -21,14 +21,18 @@ const Register = () => {
   
   const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromPathname = location.state?.from?.pathname || '/dashboard';
+  const fromSearch = location.state?.from?.search || '';
+  const from = `${fromPathname}${fromSearch}`;
 
   useEffect(() => {
     console.log('Register.jsx: isAuthenticated changed to', isAuthenticated);
     if (isAuthenticated) {
-      console.log('Register.jsx: Navigating to /dashboard due to isAuthenticated change.');
-      navigate('/dashboard');
+      console.log('Register.jsx: Navigating to preserved destination due to isAuthenticated change.', from);
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [from, isAuthenticated, navigate]);
 
   const universities = [
     'University of Technology',
@@ -100,8 +104,8 @@ const Register = () => {
     console.log('Register.jsx: register function returned:', result);
     
     if (result.success) {
-      console.log('Register.jsx: Registration successful, navigating to /dashboard.');
-      navigate('/dashboard');
+      console.log('Register.jsx: Registration successful, navigating to preserved destination.', from);
+      navigate(from, { replace: true });
     } else {
       console.log('Register.jsx: Registration failed or returned success: false.');
       setIsLoading(false);
@@ -129,13 +133,14 @@ const Register = () => {
           </div>
           <span className="text-2xl font-bold text-gray-900">PaperShare</span>
         </Link>
-        <h2 className="mt-6 text-center text-2xl font-extrabold text-gray-900 sm:text-3xl">
+        <h2 className="mt-6 text-center text-fluid-2xl font-extrabold text-gray-900">
           Create your account
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-fluid-base text-gray-600">
           Or{' '}
           <Link
             to="/login"
+            state={location.state}
             className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
           >
             sign in to your existing account
@@ -144,9 +149,9 @@ const Register = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="card py-8 px-4 sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 gap-6">
+        <div className="card p-4 sm:p-6">
+          <form className="grid gap-4 sm:gap-6" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
               <div>
                 <label htmlFor="username" className="block text-sm font-medium text-gray-700">
                   Username
@@ -185,7 +190,7 @@ const Register = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label htmlFor="university" className="block text-sm font-medium text-gray-700">
                     University
@@ -230,7 +235,7 @@ const Register = () => {
               </div>
 
               {/* Semester and Batch Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label htmlFor="semester" className="block text-sm font-medium text-gray-700">
                     Semester
@@ -289,7 +294,7 @@ const Register = () => {
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center min-h-touch"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -343,7 +348,7 @@ const Register = () => {
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center min-h-touch"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
@@ -368,7 +373,7 @@ const Register = () => {
               </div>
             </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center min-h-touch">
               <input
                 id="terms"
                 name="terms"
@@ -392,7 +397,7 @@ const Register = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full btn-primary py-3 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                className="w-full btn-primary min-h-touch text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">

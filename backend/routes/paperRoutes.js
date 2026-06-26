@@ -2,10 +2,18 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import { body, validationResult } from 'express-validator';
+import mongoose from 'mongoose';
 import Paper from '../models/paper.js';
 import User from '../models/user.js';
 import Download from '../models/download.js';
+import PaperRequest from '../models/PaperRequest.js';
 import { protect, softProtect, admin } from '../middleware/auth.js';
+import { REPUTATION_POINTS, adjustUserReputation } from '../services/reputationService.js';
+import { evaluateAndGrantBadges } from '../services/badgeService.js';
+import { enforceDownloadQuota } from '../middleware/downloadQuota.js';
+import { syncContributorStatus } from '../services/contributorStatusService.js';
+import { awardApprovalRewards } from '../services/contentApprovalService.js';
+import FacultyTakedown from '../models/FacultyTakedown.js';
 
 
 const router = express.Router();
@@ -20,7 +28,7 @@ router.get('/user/my-papers', protect, async (req, res) => {
     console.log('User in /user/my-papers:', req.user._id); // Log only the ID for brevity
     const papers = await Paper.find({ uploader: req.user._id })
       .sort({ createdAt: -1 })
-      .select('title course courseCode university department year downloadCount views status visibility paperType teacher votedBy helpfulVotes');
+      .select('title course courseCode university department year downloadCount views status visibility paperType teacher votedBy helpfulVotes createdAt updatedAt');
 
     res.json(papers);
   } catch (error) {
@@ -115,8 +123,25 @@ router.post('/upload', protect, upload.single('file'), ...[
       year,
       paperType,
       tags,
-      teacher // Add teacher here
+      teacher,
+      linkedRequestId,
     } = req.body;
+
+    let linkedRequest = null;
+    if (linkedRequestId) {
+      if (!mongoose.Types.ObjectId.isValid(linkedRequestId)) {
+        return res.status(400).json({ message: 'Invalid linked request ID' });
+      }
+
+      linkedRequest = await PaperRequest.findById(linkedRequestId);
+      if (!linkedRequest) {
+        return res.status(404).json({ message: 'Linked paper request not found' });
+      }
+
+      if (linkedRequest.status !== 'open') {
+        return res.status(400).json({ message: 'This request is no longer open for fulfillment' });
+      }
+    }
 
     // Create new paper
     const paper = new Paper({
@@ -126,12 +151,21 @@ router.post('/upload', protect, upload.single('file'), ...[
       department,
       course,
       courseCode,
-      teacher, // Add teacher here
+      teacher,
       semester,
       year: parseInt(year),
       paperType,
       tags: tags && tags.length > 0 ? tags.split(',').map(tag => tag.trim()) : [],
       uploader: req.user._id,
+      linkedRequest: linkedRequest
+        ? {
+            isLinked: true,
+            request: linkedRequest._id,
+            linkedAt: new Date(),
+          }
+        : {
+            isLinked: false,
+          },
       file: {
         filename: req.file.filename,
         originalName: req.file.originalname,
@@ -143,12 +177,31 @@ router.post('/upload', protect, upload.single('file'), ...[
 
     await paper.save();
 
-    // Increment user's upload count
-    await User.findByIdAndUpdate(req.user._id, { $inc: { uploadCount: 1 } });
+    // Get updated user for engagement feedback
+    const updatedUser = await User.findById(req.user._id);
 
     res.status(201).json({
       message: 'Paper uploaded successfully and is pending approval',
-      paper
+      paper,
+      linkedRequest: linkedRequest
+        ? {
+            id: linkedRequest._id,
+            courseName: linkedRequest.courseName,
+            examType: linkedRequest.examType,
+            year: linkedRequest.year,
+          }
+        : null,
+      fulfilledRequests: 0,
+      uploadReputationAward: 0,
+      examSeasonBoostApplied: false,
+      referralBonusAwarded: null,
+      // Engagement feedback (Feature 19)
+      engagementFeedback: {
+        totalReputation: updatedUser.reputation,
+        newBadges: updatedUser.badgeKeys || [],
+        contributorStatus: updatedUser.contributorStatus,
+        uploadCount: updatedUser.uploadCount,
+      },
     });
 
   } catch (error) {
@@ -193,6 +246,16 @@ router.get('/', async (req, res) => {
     // Build filter object
     const filter = { status, visibility };
     
+    // Exclude papers with active takedown hide requests (Feature 17)
+    const activeHideRequests = await FacultyTakedown.find({
+      paperTemporarilyHidden: true,
+      hiddenUntil: { $gt: new Date() },
+    }).select('paper');
+    const hiddenPaperIds = activeHideRequests.map(r => r.paper);
+    if (hiddenPaperIds.length > 0) {
+      filter._id = { $nin: hiddenPaperIds };
+    }
+    
     if (university) filter.university = new RegExp(university, 'i');
     if (department) filter.department = new RegExp(department, 'i');
     if (course) filter.course = new RegExp(course, 'i');
@@ -225,7 +288,7 @@ router.get('/', async (req, res) => {
       .sort(options.sort)
       .limit(options.limit * 1)
       .skip((options.page - 1) * options.limit)
-      .populate('uploader', 'username university department')
+      .populate('uploader', 'username university department reputation badgeKeys contributorStatus')
       .exec();
     console.log("After Paper.find()");
 
@@ -247,6 +310,63 @@ router.get('/', async (req, res) => {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+  }
+});
+
+// Get paper insights for sidebar stats/popular courses
+router.get('/meta/insights', async (req, res) => {
+  try {
+    const {
+      university,
+      department,
+      semester,
+      year,
+      paperType,
+      visibility = 'public',
+    } = req.query;
+
+    const filter = { status: 'approved', visibility };
+    if (university) filter.university = new RegExp(university, 'i');
+    if (department) filter.department = new RegExp(department, 'i');
+    if (semester) filter.semester = new RegExp(semester, 'i');
+    if (year) filter.year = parseInt(year, 10);
+    if (paperType) filter.paperType = paperType;
+
+    const [totalPapers, universities, departments, topCourses] = await Promise.all([
+      Paper.countDocuments(filter),
+      Paper.distinct('university', filter),
+      Paper.distinct('department', filter),
+      Paper.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: '$course',
+            count: { $sum: 1 },
+            totalDownloads: { $sum: { $ifNull: ['$downloadCount', 0] } },
+          },
+        },
+        { $sort: { count: -1, totalDownloads: -1 } },
+        { $limit: 6 },
+        {
+          $project: {
+            _id: 0,
+            course: '$_id',
+            count: 1,
+            totalDownloads: 1,
+          },
+        },
+      ]),
+    ]);
+
+    res.json({
+      totalPapers,
+      universitiesCount: universities.length,
+      departmentsCount: departments.length,
+      topCourses,
+    });
+  } catch (error) {
+    console.error('Get paper insights error:', error);
+    res.status(500).json({ message: 'Server error fetching paper insights' });
   }
 });
 
@@ -299,7 +419,7 @@ router.get('/admin/pending', protect, admin, async (req, res) => {
       .sort(options.sort)
       .limit(options.limit * 1)
       .skip((options.page - 1) * options.limit)
-      .populate('uploader', 'username university department')
+      .populate('uploader', 'username university department reputation badgeKeys contributorStatus')
       .exec();
 
     const total = await Paper.countDocuments(filter);
@@ -334,6 +454,7 @@ router.patch('/admin/:id/status', protect, admin, [
     }
 
     const { status } = req.body;
+    const previousStatus = paper.status;
 
     paper.status = status;
     if (status === 'approved') {
@@ -345,6 +466,10 @@ router.patch('/admin/:id/status', protect, admin, [
     }
 
     const updatedPaper = await paper.save();
+
+    if (previousStatus !== 'approved' && status === 'approved') {
+      await awardApprovalRewards({ content: updatedPaper, contentType: 'paper' });
+    }
 
     res.json({
       message: `Paper ${status} successfully`,
@@ -361,7 +486,7 @@ router.patch('/admin/:id/status', protect, admin, [
 router.get('/:id', softProtect, async (req, res) => {
   try {
     const paper = await Paper.findById(req.params.id)
-      .populate('uploader', 'username university department profilePicture')
+      .populate('uploader', 'username university department profilePicture reputation badgeKeys contributorStatus')
       .populate('reports.user', 'username');
 
     if (!paper) {
@@ -473,43 +598,83 @@ router.delete('/:id', protect, async (req, res) => {
 // Helpful vote for paper
 router.put('/:id/vote', protect, async (req, res) => {
   try {
-    const paper = await Paper.findById(req.params.id);
+    const userId = req.user._id;
+    const voteRequested = typeof req.body?.vote === 'boolean' ? req.body.vote : null;
+    const existingPaper = await Paper.findById(req.params.id).select('uploader votedBy helpfulVotes');
 
-    if (!paper) {
+    if (!existingPaper) {
       return res.status(404).json({ message: 'Paper not found' });
     }
 
-    const userId = req.user._id;
-    const userIdString = userId.toString();
-    const { vote } = req.body; // Expect `vote: true` for voting, `vote: false` for unvoting
+    const alreadyVoted = Array.isArray(existingPaper.votedBy)
+      ? existingPaper.votedBy.some((id) => String(id) === String(userId))
+      : false;
+    const shouldVote = voteRequested === null ? !alreadyVoted : voteRequested;
 
-    const hasVoted = paper.votedBy.some(voterId => voterId.toString() === userIdString);
+    if (shouldVote) {
+      if (String(existingPaper.uploader) === String(userId)) {
+        return res.status(400).json({ message: 'You cannot vote for your own paper.' });
+      }
 
-    if (vote) { // User is trying to vote
-      if (hasVoted) {
+      if (alreadyVoted) {
         return res.status(400).json({ message: 'You have already voted on this paper.' });
       }
-      paper.votedBy.push(userId);
-      paper.helpfulVotes += 1;
-      await paper.save();
-      res.json({
+
+      const paper = await Paper.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          votedBy: { $ne: userId },
+          uploader: { $ne: userId },
+        },
+        {
+          $addToSet: { votedBy: userId },
+          $inc: { helpfulVotes: 1 },
+        },
+        { new: true }
+      );
+
+      if (!paper) {
+        return res.status(400).json({ message: 'You have already voted on this paper.' });
+      }
+
+      await adjustUserReputation(paper.uploader, REPUTATION_POINTS.HELPFUL_VOTE);
+      await evaluateAndGrantBadges(paper.uploader);
+
+      return res.json({
         message: 'Vote recorded successfully',
         helpfulVotes: paper.helpfulVotes,
-        voted: true // Indicate that the vote was cast
-      });
-    } else { // User is trying to unvote
-      if (!hasVoted) {
-        return res.status(400).json({ message: 'You have not voted on this paper.' });
-      }
-      paper.votedBy = paper.votedBy.filter(voterId => voterId.toString() !== userId.toString());
-      paper.helpfulVotes -= 1;
-      await paper.save();
-      res.json({
-        message: 'Vote removed successfully',
-        helpfulVotes: paper.helpfulVotes,
-        voted: false // Indicate that the vote was removed
+        voted: true,
       });
     }
+
+    if (!alreadyVoted) {
+      return res.status(400).json({ message: 'You have not voted on this paper.' });
+    }
+
+    const paper = await Paper.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        votedBy: userId,
+      },
+      {
+        $pull: { votedBy: userId },
+        $inc: { helpfulVotes: -1 },
+      },
+      { new: true }
+    );
+
+    if (!paper) {
+      return res.status(400).json({ message: 'You have not voted on this paper.' });
+    }
+
+    await adjustUserReputation(paper.uploader, -REPUTATION_POINTS.HELPFUL_VOTE);
+    await evaluateAndGrantBadges(paper.uploader);
+
+    return res.json({
+      message: 'Vote removed successfully',
+      helpfulVotes: paper.helpfulVotes,
+      voted: false,
+    });
   } catch (error) {
     console.error('Vote error:', error);
     res.status(500).json({ message: 'Server error recording vote' });
@@ -553,7 +718,7 @@ router.put('/:id/view', protect, async (req, res) => {
 });
 
 // Download paper
-router.get('/:id/download', protect, async (req, res) => {
+router.get('/:id/download', protect, enforceDownloadQuota, async (req, res) => {
   try {
     const paper = await Paper.findById(req.params.id);
     
@@ -561,16 +726,39 @@ router.get('/:id/download', protect, async (req, res) => {
       return res.status(404).json({ message: 'Paper not found or not approved' });
     }
 
-    // Increment download count
-    paper.downloadCount += 1;
-    await paper.save();
+    const isSelfDownload = paper.uploader.toString() === req.user._id.toString();
 
-    // Create a download record
-    const download = new Download({
-      user: req.user._id,
-      paper: paper._id,
-    });
-    await download.save();
+    // Track unique downloads only once per user-paper pair to prevent farming.
+    let downloadUpsert;
+    try {
+      downloadUpsert = await Download.updateOne(
+        { user: req.user._id, paper: paper._id },
+        {
+          $setOnInsert: {
+            user: req.user._id,
+            paper: paper._id,
+            downloadedAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+    } catch (err) {
+      if (err?.code === 11000) {
+        downloadUpsert = { upsertedCount: 0 };
+      } else {
+        throw err;
+      }
+    }
+
+    const isNewUniqueDownload = downloadUpsert.upsertedCount > 0;
+
+    if (isNewUniqueDownload && !isSelfDownload) {
+      await Promise.all([
+        Paper.updateOne({ _id: paper._id }, { $inc: { downloadCount: 1 } }),
+        adjustUserReputation(paper.uploader, REPUTATION_POINTS.DOWNLOAD_GENERATED),
+      ]);
+      await evaluateAndGrantBadges(paper.uploader);
+    }
 
     res.download(paper.file.path, paper.file.originalName);
   } catch (error) {

@@ -134,7 +134,7 @@ const EditPaper = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary-600" />
         <span className="ml-4 text-xl text-gray-700">Loading Paper...</span>
       </div>
@@ -143,12 +143,12 @@ const EditPaper = () => {
 
   if (isError) {
     return (
-      <div className="text-center py-10">
-        <h2 className="text-2xl font-bold text-error-600">Error</h2>
-        <p className="text-gray-600 mt-2">
+      <div className="text-center py-10 px-4">
+        <h2 className="text-fluid-2xl font-bold text-error-600">Error</h2>
+        <p className="text-fluid-base text-gray-600 mt-2">
           Could not load paper details. Please try again later.
         </p>
-        <button onClick={() => navigate(-1)} className="btn-primary mt-4">
+        <button onClick={() => navigate(-1)} className="btn-primary min-h-touch mt-4">
           Go Back
         </button>
       </div>
@@ -156,27 +156,27 @@ const EditPaper = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-      <div className="flex items-center mb-8">
+    <div className="max-w-4xl mx-auto py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center mb-6 sm:mb-8">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-full hover:bg-gray-100 mr-4"
+          className="min-h-touch min-w-[44px] flex items-center justify-center rounded-full hover:bg-gray-100 mr-4"
         >
           <ArrowLeft className="h-6 w-6 text-gray-600" />
         </button>
-        <h1 className="text-3xl font-bold text-gray-900">Edit Paper</h1>
+        <h1 className="text-fluid-2xl font-bold text-gray-900">Edit Paper</h1>
       </div>
 
-      <div className="card p-6">
-        <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="card p-4 sm:p-6">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center">
               <BookOpen className="h-5 w-5 mr-2 text-primary-600" />
               Paper Information
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 sm:gap-6">
+              <div className="xs:col-span-2">
                 <label
                   htmlFor="title"
                   className="block text-sm font-medium text-gray-700 mb-2"
@@ -195,7 +195,7 @@ const EditPaper = () => {
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div className="xs:col-span-2">
                 <label
                   htmlFor="description"
                   className="block text-sm font-medium text-gray-700 mb-2"
@@ -283,7 +283,7 @@ const EditPaper = () => {
                   required
                   value={formData.university}
                   onChange={handleChange}
-                  className="input-field"
+                  className="input-field min-h-touch"
                 >
                   <option value="">Select University</option>
                   {universities.map((uni) => (
@@ -307,7 +307,7 @@ const EditPaper = () => {
                   required
                   value={formData.department}
                   onChange={handleChange}
-                  className="input-field"
+                  className="input-field min-h-touch"
                 >
                   <option value="">Select Department</option>
                   {departments.map((dept) => (
@@ -351,7 +351,7 @@ const EditPaper = () => {
                   required
                   value={formData.year}
                   onChange={handleChange}
-                  className="input-field"
+                  className="input-field min-h-touch"
                 >
                   {years.map((year) => (
                     <option key={year} value={year}>
@@ -374,7 +374,7 @@ const EditPaper = () => {
                   required
                   value={formData.paperType}
                   onChange={handleChange}
-                  className="input-field"
+                  className="input-field min-h-touch"
                 >
                   {paperTypes.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -407,18 +407,18 @@ const EditPaper = () => {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="btn-secondary mr-3"
+              className="btn-secondary min-h-touch"
               disabled={updatePaperMutation.isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-primary flex items-center"
+              className="btn-primary min-h-touch flex items-center justify-center"
               disabled={updatePaperMutation.isLoading}
             >
               {updatePaperMutation.isLoading ? (

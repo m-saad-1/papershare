@@ -3,7 +3,13 @@ const router = express.Router();
 import {
   getAllUsers,
   getUserProfile,
+  getPublicContributorProfile,
+  getPublicPlatformStats,
+  getContributorImpactMetrics,
+  getUserNotifications,
+  markNotificationsRead,
   getLeaderboard,
+  getWeeklyTopContributors,
   updateUserProfile,
 } from '../userController.js';
 import { protect } from '../middleware/auth.js';
@@ -38,10 +44,16 @@ const upload = multer({
 });
 
 router.route('/').get(protect, getAllUsers);
+router.route('/stats/public').get(getPublicPlatformStats);
+router.route('/leaderboard/weekly').get(getWeeklyTopContributors);
+router.route('/leaderboard').get(getLeaderboard);
+router.route('/:id/public').get(getPublicContributorProfile);
+router.route('/:id/impact').get(protect, getContributorImpactMetrics);
+router.route('/:id/notifications').get(protect, getUserNotifications);
+router.route('/:id/notifications/read-all').patch(protect, markNotificationsRead);
 router
   .route('/:id')
   .get(getUserProfile)
   .put(protect, upload.single('profilePicture'), updateUserProfile);
-router.route('/leaderboard').get(getLeaderboard);
 
 export default router;

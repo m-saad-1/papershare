@@ -50,6 +50,17 @@ const paperSchema = new mongoose.Schema({
     size: Number,
     mimetype: String
   },
+  linkedRequest: {
+    isLinked: {
+      type: Boolean,
+      default: false,
+    },
+    request: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PaperRequest',
+    },
+    linkedAt: Date,
+  },
   uploader: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -119,6 +130,10 @@ const paperSchema = new mongoose.Schema({
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+  approvalRewardGranted: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -133,5 +148,6 @@ paperSchema.index({
 
 // Index for filtering
 paperSchema.index({ university: 1, department: 1, course: 1, semester: 1, year: 1, paperType: 1 });
+paperSchema.index({ 'linkedRequest.request': 1 });
 
 export default mongoose.model('Paper', paperSchema);

@@ -15,7 +15,9 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const fromPathname = location.state?.from?.pathname || '/dashboard';
+  const fromSearch = location.state?.from?.search || '';
+  const from = `${fromPathname}${fromSearch}`;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -52,13 +54,14 @@ const Login = () => {
           </div>
           <span className="text-2xl font-bold text-gray-900">PaperShare</span>
         </Link>
-        <h2 className="mt-6 text-center text-2xl font-extrabold text-gray-900 sm:text-3xl">
+        <h2 className="mt-6 text-center text-fluid-2xl font-extrabold text-gray-900">
           Sign in to your account
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-fluid-base text-gray-600">
           Or{' '}
           <Link
             to="/register"
+            state={location.state}
             className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
           >
             create a new account
@@ -67,8 +70,8 @@ const Login = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="card py-8 px-4 sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="card p-4 sm:p-6">
+          <form className="grid gap-4 sm:gap-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -106,7 +109,7 @@ const Login = () => {
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center min-h-touch"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -118,8 +121,8 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center min-h-touch">
                 <input
                   id="remember-me"
                   name="remember-me"
@@ -132,7 +135,7 @@ const Login = () => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200">
+                <a href="#" className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200 min-h-touch inline-flex items-center">
                   Forgot your password?
                 </a>
               </div>
@@ -142,7 +145,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full btn-primary py-3 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                className="w-full btn-primary min-h-touch text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">

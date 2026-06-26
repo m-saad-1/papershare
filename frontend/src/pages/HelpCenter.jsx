@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Search, 
   HelpCircle, 
@@ -11,10 +11,6 @@ import {
   FileQuestion,
   ChevronDown,
   ChevronUp,
-
-  AlertCircle,
-  CheckCircle,
-  XCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -22,7 +18,8 @@ const HelpCenter = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [openFaqs, setOpenFaqs] = useState({});
-  const [openArticles, setOpenArticles] = useState({}); // New state for articles
+  const [openArticles, setOpenArticles] = useState({});
+  const categoriesSectionRef = useRef(null);
 
   const generateArticleContent = (articleId) => {
     let content;
@@ -307,20 +304,13 @@ const HelpCenter = () => {
     },
   ];
 
-  const popularArticles = [
-    { id: 1, title: 'How to maximize paper downloads', views: '1.2k' },
-    { id: 2, title: 'Best practices for paper descriptions', views: '890' },
-    { id: 3, title: 'Understanding download analytics', views: '756' },
-    { id: 4, title: 'How to organize your uploaded papers', views: '623' },
-  ];
-
-  const slugify = (text) => {
-    return text.toString().toLowerCase()
-      .replace(/\s+/g, '-')           // Replace spaces with -
-      .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
-      .replace(/\-\-+/g, '-')         // Replace multiple - with single -
-      .replace(/^-+/, '')             // Trim - from start of text
-      .replace(/-+$/, '');            // Trim - from end of text
+  const openUploadGuide = () => {
+    setExpandedCategory('uploading');
+    setOpenArticles((prev) => ({
+      ...prev,
+      up1: true,
+    }));
+    categoriesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const toggleFaq = (index) => {
@@ -378,14 +368,15 @@ const HelpCenter = () => {
             <p className="text-sm text-gray-600">Get direct help from our support team</p>
           </Link>
           
-          <Link
-            to="/upload"
+          <button
+            type="button"
+            onClick={openUploadGuide}
             className="bg-white rounded-xl p-4 md:p-6 border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200 text-center"
           >
             <Upload className="h-8 w-8 md:h-10 md:w-10 text-primary-600 mx-auto mb-3" />
             <h3 className="font-semibold text-gray-900 mb-2">Upload Guide</h3>
             <p className="text-sm text-gray-600">Learn how to upload papers successfully</p>
-          </Link>
+          </button>
           
           <Link
             to="/terms-of-service"
@@ -398,7 +389,7 @@ const HelpCenter = () => {
         </div>
 
         {/* Categories */}
-        <div className="mb-10 md:mb-16">
+        <div ref={categoriesSectionRef} className="mb-10 md:mb-16">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Browse by Category</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -458,33 +449,6 @@ const HelpCenter = () => {
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        {/* Popular Articles */}
-        <div className="mb-10 md:mb-16">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Popular Articles</h2>
-
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {popularArticles.map((article) => (
-              <div
-                key={article.id}
-                className="block bg-white rounded-xl p-4 md:p-6 border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all duration-200"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-2 text-sm md:text-base">{article.title}</h3>
-                    <div className="flex items-center text-gray-500 text-xs md:text-sm">
-                      <FileQuestion className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                      <span>{article.views} views</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 

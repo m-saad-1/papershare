@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 // Load env vars
-dotenv.config();
+dotenv.config({ path: './backend/.env' });
 
 // Connect to database
 connectDB();
@@ -53,6 +53,9 @@ import userRoutes from './routes/userRoutes.js';
 import paperRoutes from './routes/paperRoutes.js';
 import adminRoutes from './routes/admin.js';
 import messageRoutes from './routes/messages.js';
+import paperRequestRoutes from './routes/paperRequests.js';
+import universityRoutes from './routes/universities.js';
+import notesRoutes from './routes/notes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -63,6 +66,9 @@ app.use((req, res, next) => {
 app.use('/api/papers', paperRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/messages', messageRoutes); // Added for chat functionality
+app.use('/api/requests', paperRequestRoutes);
+app.use('/api/universities', universityRoutes);
+app.use('/api/notes', notesRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

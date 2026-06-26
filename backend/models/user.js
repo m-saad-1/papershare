@@ -51,6 +51,65 @@ const UserSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  reputation: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  weeklyContributionScore: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  weeklyContributionWeek: {
+    type: String,
+    default: '',
+  },
+  lastTopContributorBonusWeek: {
+    type: String,
+    default: '',
+  },
+  weeklyTopContributorAwardedAt: {
+    type: Date,
+  },
+  badgeKeys: [{
+    type: String,
+  }],
+  contributorStatus: {
+    type: String,
+    enum: ['Student', 'Contributor', 'Verified Contributor', 'Top Scholar', 'Campus Ambassador'],
+    default: 'Student',
+  },
+  // Campus Ambassador Program (Feature 13)
+  isCampusAmbassador: {
+    type: Boolean,
+    default: false,
+  },
+  ambassadorUniversity: {
+    type: String,
+    default: '',
+  },
+  ambassadorAssignedAt: {
+    type: Date,
+  },
+  // Referral System (Feature 14)
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  referrals: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  referralBonusAwarded: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });
@@ -58,7 +117,7 @@ const UserSchema = new mongoose.Schema({
 // Encrypt password using bcrypt
 UserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);

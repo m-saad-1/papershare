@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Loader } from 'lucide-react';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -20,6 +20,10 @@ const ProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (isAdmin && location.pathname === '/dashboard') {
+    return <Navigate to="/admin" replace />;
   }
 
   return children;

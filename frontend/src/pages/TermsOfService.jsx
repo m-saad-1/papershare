@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
 import { 
-  FileText, 
-  Scale, 
-  AlertCircle, 
+  FileText,
+  Scale,
+  AlertCircle,
   CheckCircle, 
-  XCircle, 
+  XCircle,
   ChevronDown, 
   ChevronUp,
-  ExternalLink,
   Calendar,
   Shield,
   Lock,
   Users,
   BookOpen,
-  Download,
   Upload
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -37,27 +35,27 @@ const TermsOfService = () => {
       id: 'acceptance',
       title: 'Acceptance of Terms',
       icon: CheckCircle,
-      content: `By accessing and using PaperShare, you accept and agree to be bound by the terms and provision of this agreement. In addition, when using this website's particular services, you shall be subject to any posted guidelines or rules applicable to such services.`
+      content: `By creating an account or using PaperShare, you agree to these Terms of Service. If you do not agree, please do not use the platform.`
     },
     {
       id: 'description',
       title: 'Description of Service',
       icon: BookOpen,
-      content: `PaperShare is an online platform that allows students and educational institutions to share, access, and download past academic papers, assignments, and study materials. The service includes user registration, paper upload/download functionality, community features, and administrative tools.`
+      content: `PaperShare is a student-focused platform where users can upload, browse, request, and download academic papers and study notes. Content may be moderated for quality, policy compliance, and community safety.`
     },
     {
       id: 'user-accounts',
       title: 'User Accounts',
       icon: Users,
-      content: `To access certain features of the Service, you must register for an account. You agree to:
+      content: `To use key features, you must register an account. You agree to:
 
 • Provide accurate, current, and complete information during registration
-• Maintain and promptly update your account information
-• Maintain the security of your password and accept all risks of unauthorized access
+• Keep your account information up to date
+• Keep your password secure and not share your account
 • Notify us immediately of any unauthorized use of your account
 • Be responsible for all activities that occur under your account
 
-We reserve the right to disable any user account at our sole discretion.`
+We may suspend or restrict accounts that violate these terms.`
     },
     {
       id: 'content',
@@ -70,19 +68,20 @@ We reserve the right to disable any user account at our sole discretion.`
 • Is illegal, threatening, defamatory, or harassing
 • Is spam or commercial solicitation
 • Contains personally identifiable information without consent
-• Violates academic integrity policies
+• Is not your own work or is shared without permission
+• Encourages academic dishonesty
 
-We reserve the right to remove any content that violates these terms.`
+We may remove content or limit accounts that violate these rules.`
     },
     {
       id: 'intellectual-property',
       title: 'Intellectual Property Rights',
       icon: Shield,
-      content: `The Service and its original content, features, and functionality are owned by PaperShare and are protected by international copyright, trademark, and other intellectual property laws.
+  content: `PaperShare platform code, branding, and design are owned by PaperShare.
 
-By uploading content to PaperShare, you grant us a worldwide, non-exclusive, royalty-free license to use, reproduce, modify, and display such content in connection with the Service.
+By uploading content, you grant PaperShare a non-exclusive license to host, display, and distribute that content within the platform so users can discover and access it.
 
-You retain all ownership rights to your uploaded content.`
+You keep ownership of your uploaded material, but you must have rights to share it.`
     },
     {
       id: 'prohibited-uses',
@@ -102,62 +101,61 @@ You retain all ownership rights to your uploaded content.`
       id: 'copyright',
       title: 'Copyright Policy',
       icon: FileText,
-      content: `We respect the intellectual property rights of others. It is our policy to respond to any claim that Content posted on the Service infringes the copyright or other intellectual property rights of any person.
+      content: `We respect copyright and intellectual property rights. If you believe content on PaperShare infringes your rights, contact our support team with:
 
-If you are a copyright owner, or authorized on behalf of one, and you believe that the copyrighted work has been copied in a way that constitutes copyright infringement, please submit your claim via email to copyright@papershare.com, with the subject line: "Copyright Infringement" and include a detailed description of the alleged infringement.
+    • Your identity and contact information
+    • A description of the copyrighted work
+    • The exact PaperShare URL or content reference
+    • A statement that your claim is made in good faith
 
-We will promptly investigate claims of copyright infringement.`
+    We review reports and may remove content while investigating.`
     },
     {
       id: 'termination',
       title: 'Termination',
       icon: Lock,
-      content: `We may terminate or suspend your account and bar access to the Service immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever, including but not limited to a breach of the Terms.
+      content: `We may suspend or terminate access if you violate these terms, abuse the platform, or create legal/security risk.
 
-If you wish to terminate your account, you may simply discontinue using the Service or contact us to delete your account.
+    You may request account deletion by contacting support.
 
-All provisions of the Terms which by their nature should survive termination shall survive termination, including, without limitation, ownership provisions, warranty disclaimers, indemnity, and limitations of liability.`
+    Certain records may be retained where required for legal, abuse-prevention, or security reasons.`
     },
     {
       id: 'limitation-liability',
       title: 'Limitation of Liability',
       icon: AlertCircle,
-      content: `In no event shall PaperShare, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from:
+      content: `PaperShare is provided as-is. To the extent allowed by law, PaperShare is not liable for indirect or consequential losses resulting from:
 
-• Your access to or use of or inability to access or use the Service
-• Any conduct or content of any third party on the Service
-• Any content obtained from the Service
-• Unauthorized access, use or alteration of your transmissions or content
+    • Service downtime or interruptions
+    • User-generated content accuracy or legality
+    • Unauthorized account access caused by compromised credentials
+    • Reliance on materials shared by other users
 
-This limitation applies whether the alleged liability is based on contract, tort, negligence, strict liability, or any other basis.`
+    This does not exclude liability that cannot be excluded under applicable law.`
     },
     {
       id: 'disclaimer',
       title: 'Disclaimer',
       icon: Scale,
-      content: `Your use of the Service is at your sole risk. The Service is provided on an "AS IS" and "AS AVAILABLE" basis. The Service is provided without warranties of any kind, whether express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, non-infringement or course of performance.
+      content: `Your use of PaperShare is at your own risk. We do not guarantee uninterrupted access, complete accuracy of all user-uploaded content, or suitability for any specific academic requirement.
 
-PaperShare does not warrant that:
-• The Service will function uninterrupted, secure or available at any particular time or location
-• Any errors or defects will be corrected
-• The Service is free of viruses or other harmful components
-• The results of using the Service will meet your requirements`
+    Always verify papers and notes with your institution's official guidance.`
     },
     {
       id: 'governing-law',
       title: 'Governing Law',
       icon: Scale,
-      content: `These Terms shall be governed and construed in accordance with the laws of the State of California, United States, without regard to its conflict of law provisions.
+      content: `These terms are governed by applicable local laws where PaperShare operates.
 
-Our failure to enforce any right or provision of these Terms will not be considered a waiver of those rights. If any provision of these Terms is held to be invalid or unenforceable by a court, the remaining provisions will remain in effect.`
+    If any provision is found unenforceable, the remaining provisions continue to apply.`
     },
     {
       id: 'changes',
       title: 'Changes to Terms',
       icon: Calendar,
-      content: `We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.
+      content: `We may update these terms when features, laws, or platform rules change. Updated terms will be posted on this page with a new effective date.
 
-By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, please stop using the Service.`
+    By continuing to use PaperShare after updates, you agree to the revised terms.`
     }
   ];
 
@@ -184,7 +182,7 @@ By continuing to access or use our Service after those revisions become effectiv
     }
   ];
 
-  const lastUpdated = 'January 15, 2024';
+  const lastUpdated = 'March 15, 2026';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -218,7 +216,7 @@ By continuing to access or use our Service after those revisions become effectiv
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Important Legal Notice</h2>
                 <p className="text-gray-700 mb-4">
-                  These Terms of Service govern your use of PaperShare. By accessing or using our platform, you agree to be bound by these terms. If you disagree with any part of the terms, you may not access the service.
+                  These terms describe how PaperShare should be used, what is allowed, and what actions can lead to moderation or account limits.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
@@ -226,12 +224,7 @@ By continuing to access or use our Service after those revisions become effectiv
                     className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 bg-white text-primary-600 font-semibold rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors duration-200 text-sm md:text-base"
                   >
                     View Privacy Policy
-                    <ExternalLink className="ml-2 h-4 w-4" />
                   </Link>
-                  <button className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors duration-200 text-sm md:text-base">
-                    Download Terms
-                    <Download className="ml-2 h-4 w-4" />
-                  </button>
                 </div>
               </div>
             </div>
@@ -299,7 +292,7 @@ By continuing to access or use our Service after those revisions become effectiv
                       to="/contact"
                       className="flex items-center text-sm text-primary-600 hover:text-primary-700"
                     >
-                      <ExternalLink className="h-3 w-3 md:h-4 md:w-4 mr-2" />
+                      <AlertCircle className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                       Contact Legal Team
                     </Link>
                   </div>
@@ -387,20 +380,14 @@ By continuing to access or use our Service after those revisions become effectiv
                 <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
                   By continuing to use PaperShare, you confirm that you have read, understood, and agree to be bound by these Terms of Service.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex justify-center">
                   <Link
                     to="/"
                     className="inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors duration-200 text-sm md:text-base"
                   >
                     I Accept & Continue
                   </Link>
-                  <button className="inline-flex items-center justify-center px-6 md:px-8 py-3 md:py-4 bg-white text-primary-600 font-semibold rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors duration-200 text-sm md:text-base">
-                    I Decline
-                  </button>
                 </div>
-                <p className="text-sm text-gray-600 mt-4">
-                  Declining will restrict access to certain features of PaperShare
-                </p>
               </div>
             </div>
 
@@ -414,11 +401,10 @@ By continuing to access or use our Service after those revisions become effectiv
                   </p>
                 </div>
                 <a
-                  href="mailto:legal@papershare.com"
+                  href="mailto:papersharehelp@gmail.com"
                   className="inline-flex items-center px-4 md:px-6 py-2 md:py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm md:text-base"
                 >
                   Contact Legal Team
-                  <ExternalLink className="ml-2 h-4 w-4" />
                 </a>
               </div>
             </div>

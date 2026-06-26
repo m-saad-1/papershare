@@ -21,6 +21,10 @@ import {
 } from 'lucide-react';
 
 import AuthModal from '@/components/auth/AuthModal';
+import ReportPaperModal from '@/components/papers/ReportPaperModal';
+import { mapBadgeKeys } from '@/utils/badges';
+import { StyledBadge } from '@/components/badges/StyledBadge';
+import { getContributorStatusMeta } from '@/utils/contributorStatus';
 
 const PaperDetails = () => {
   const { id } = useParams();
@@ -187,9 +191,16 @@ const PaperDetails = () => {
     }
 
     const userId = user?._id || user?.id;
-    const hasVoted = paper?.votedBy?.some(voterId => voterId.toString() === userId.toString());
+    const hasVoted = Array.isArray(paper?.votedBy)
+      ? paper.votedBy.some((voterId) => String(voterId) === String(userId))
+      : false;
     voteMutation.mutate({ isVoting: !hasVoted });
   };
+
+  const currentUserId = user?._id || user?.id;
+  const currentUserHasVoted = Array.isArray(paper?.votedBy)
+    ? paper.votedBy.some((voterId) => String(voterId) === String(currentUserId))
+    : false;
 
   const handleReport = (e) => {
     e.preventDefault();
@@ -252,6 +263,9 @@ const PaperDetails = () => {
     };
   }
 
+  const uploaderBadges = mapBadgeKeys(paper?.uploader?.badgeKeys || []);
+  const uploaderStatus = getContributorStatusMeta(paper?.uploader?.contributorStatus);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -304,8 +318,8 @@ const PaperDetails = () => {
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-6 sm:px-6 sm:py-8 text-white">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
               <div className="flex-1">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">{paper.title}</h1>
-                <p className="text-primary-100 text-base sm:text-lg mb-4">
+                <h1 className="text-fluid-2xl font-bold mb-2">{paper.title}</h1>
+                <p className="text-primary-100 text-fluid-base mb-4">
                   {paper.course} • {paper.courseCode}
                 </p>
                 <div className="flex flex-wrap items-center gap-4 text-sm">
@@ -340,13 +354,13 @@ const PaperDetails = () => {
 
           {/* Paper Details */}
           <div className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
               {/* Main Info */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-3">
                 {paper.description && (
                   <div className="mb-4 md:mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
-                    <p className="text-gray-700 leading-relaxed">{paper.description}</p>
+                    <p className="text-fluid-base text-gray-700 leading-relaxed">{paper.description}</p>
                   </div>
                 )}
 
@@ -355,9 +369,9 @@ const PaperDetails = () => {
                   <div className="bg-gray-50 rounded-lg p-4 mb-4 md:mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">File Information</h3>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">File Name</span>
-                        <span className="font-medium">{paper.file?.originalName}</span>
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-gray-600 flex-shrink-0">File Name</span>
+                        <span className="font-medium line-clamp-1 text-right max-w-[70%]">{paper.file?.originalName}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">File Size</span>
@@ -397,7 +411,7 @@ const PaperDetails = () => {
                   {/* Uploader Info */}
                   <div className="card p-4">
                     <h3 className="font-semibold text-gray-900 mb-3">Uploaded By</h3>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-start space-x-3">
                       {paper.uploader?.profilePicture ? (
                         <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${paper.uploader.profilePicture.replace(/\\/g, '/')}`} alt={paper.uploader.username} className="w-10 h-10 rounded-full object-cover" />
                       ) : (
@@ -405,13 +419,32 @@ const PaperDetails = () => {
                           <User className="h-5 w-5 text-primary-600" />
                         </div>
                       )}
-                      <div>
-                        <Link to={`/profile/${paper.uploader?._id}`} className="font-medium text-gray-900 hover:text-primary-600 hover:underline">
-                          {paper.uploader?.username}
-                        </Link>
-                        <p className="text-sm text-gray-600">{paper.uploader?.department}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Link to={`/profile/${paper.uploader?._id}`} className="font-medium text-gray-900 hover:text-primary-600 hover:underline line-clamp-1 min-w-0 flex-1">
+                            {paper.uploader?.username}
+                          </Link>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
+                            {Number(paper.uploader?.reputation || 0).toLocaleString()} pts
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full border text-[10px] font-semibold shadow-sm ${uploaderStatus.className}`}>
+                            {uploaderStatus.label}
+                          </span>
+                          <p className="text-sm text-gray-600 line-clamp-1">{paper.uploader?.department}</p>
+                        </div>
                       </div>
                     </div>
+                    {uploaderBadges.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 lg:grid-cols-3 gap-0.5">
+                        {uploaderBadges.map((badge) => (
+                          <div key={badge.key} className="origin-left scale-95">
+                            <StyledBadge badgeKey={badge.key} size="sm" showName={false} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Stats */}
@@ -447,7 +480,7 @@ const PaperDetails = () => {
                     <button
                       onClick={handleDownload}
                       disabled={downloadMutation.isLoading}
-                      className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      className="w-full btn-primary min-h-touch disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                     >
                       {downloadMutation.isLoading ? (
                         <>
@@ -466,12 +499,12 @@ const PaperDetails = () => {
                       <button
                         onClick={handleVote}
                         disabled={voteMutation.isLoading || (isAuthenticated && user?._id === paper.uploader?._id)}
-                        className={`btn-secondary flex items-center justify-center disabled:opacity-70 ${isAuthenticated && paper?.votedBy?.includes(user?._id || user?.id) ? 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100' : ''}`}
+                        className={`btn-secondary min-h-touch flex items-center justify-center disabled:opacity-70 ${isAuthenticated && currentUserHasVoted ? 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100' : ''}`}
                       >
                         <ThumbsUp className="h-4 w-4 mr-2" />
-                        {isAuthenticated && paper?.votedBy?.includes(user?._id || user?.id) ? 'Voted' : 'Helpful'}
+                        {isAuthenticated && currentUserHasVoted ? 'Voted' : 'Helpful'}
                       </button>
-                      <button onClick={handleShare} className="btn-secondary flex items-center justify-center">
+                      <button onClick={handleShare} className="btn-secondary min-h-touch flex items-center justify-center">
                         <Share2 className="h-4 w-4 mr-2" />
                         Share
                       </button>
@@ -480,7 +513,7 @@ const PaperDetails = () => {
                     {isAuthenticated ? (
                       <button
                         onClick={() => setShowReportModal(true)}
-                        className="w-full btn-secondary text-error-600 hover:text-error-700 flex items-center justify-center"
+                        className="w-full btn-secondary min-h-touch text-error-600 hover:text-error-700 flex items-center justify-center"
                       >
                         <Flag className="h-4 w-4 mr-2" />
                         Report Issue
@@ -488,7 +521,7 @@ const PaperDetails = () => {
                     ) : (
                       <button
                         onClick={() => setShowAuthModal(true)}
-                        className="w-full btn-secondary text-error-600 hover:text-error-700 flex items-center justify-center"
+                        className="w-full btn-secondary min-h-touch text-error-600 hover:text-error-700 flex items-center justify-center"
                       >
                         <Flag className="h-4 w-4 mr-2" />
                         Report Issue
@@ -503,8 +536,8 @@ const PaperDetails = () => {
 
         {/* Similar Papers Section */}
         <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 md:mb-6">Similar Papers</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <h2 className="text-fluid-2xl font-bold text-gray-900 mb-4 md:mb-6">Similar Papers</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Similar papers would be fetched here */}
             <div className="card p-4 text-center">
               <p className="text-gray-600">More papers from {paper.course} coming soon</p>
@@ -515,66 +548,12 @@ const PaperDetails = () => {
 
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
 
-      {/* Report Modal */}
+      {/* Report Modal (Feature 16) */}
       {showReportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="card max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Report Paper</h3>
-            <form onSubmit={handleReport}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reason for reporting
-                  </label>
-                  <select
-                    value={reportReason}
-                    onChange={(e) => setReportReason(e.target.value)}
-                    className="input-field"
-                    required
-                  >
-                    <option value="">Select a reason</option>
-                    <option value="wrong_content">Wrong content</option>
-                    <option value="broken_file">Broken file</option>
-                    <option value="duplicate">Duplicate paper</option>
-                    <option value="other">Other issue</option>
-                  </select>
-                </div>
-
-                {reportReason === 'other' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Please describe the issue
-                    </label>
-                    <textarea
-                      rows={3}
-                      className="input-field"
-                      value={otherReportReason}
-                      onChange={(e) => setOtherReportReason(e.target.value)}
-                      placeholder="Describe the problem you encountered..."
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowReportModal(false)}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={reportMutation.isLoading}
-                  className="btn-primary bg-error-600 hover:bg-error-700 disabled:opacity-50"
-                >
-                  {reportMutation.isLoading ? 'Reporting...' : 'Report Paper'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ReportPaperModal
+          paperId={id}
+          onClose={() => setShowReportModal(false)}
+        />
       )}
     </div>
   );

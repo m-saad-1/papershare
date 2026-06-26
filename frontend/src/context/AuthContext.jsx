@@ -26,6 +26,9 @@ export const AuthProvider = ({ children }) => {
     processedData.semester = processedData.semester || '';
     processedData.batch = processedData.batch || '';
     processedData.profilePicture = processedData.profilePicture || '/images/default-profile.png'; // Provide a default profile picture path
+    processedData.reputation = Number(processedData.reputation || 0);
+    processedData.badgeKeys = Array.isArray(processedData.badgeKeys) ? processedData.badgeKeys : [];
+    processedData.contributorStatus = processedData.contributorStatus || 'Student';
 
     return processedData;
   };

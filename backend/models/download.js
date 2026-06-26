@@ -17,4 +17,6 @@ const downloadSchema = new mongoose.Schema({
   },
 });
 
+downloadSchema.index({ user: 1, paper: 1 }, { unique: true });
+
 export default mongoose.model('Download', downloadSchema);

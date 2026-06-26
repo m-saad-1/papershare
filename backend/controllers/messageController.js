@@ -58,7 +58,7 @@ const getConversations = asyncHandler(async (req, res) => {
   // Fetch conversations where the current user is a participant
   const conversations = await Conversation.find({ participants: req.user._id })
     // Populate participant details and the last message for each conversation
-    .populate('participants', 'username profilePicture isOnline')
+    .populate('participants', 'username profilePicture isOnline reputation badgeKeys contributorStatus')
     .populate({
       path: 'lastMessage',
       populate: {
@@ -95,7 +95,7 @@ const getMessages = asyncHandler(async (req, res) => {
   // Find all messages belonging to the given conversation ID
   const messages = await Message.find({ conversationId: req.params.conversationId })
     // Populate sender information for each message
-    .populate('sender', 'username profilePicture')
+    .populate('sender', 'username profilePicture reputation badgeKeys contributorStatus')
     // Sort messages chronologically
     .sort({ createdAt: 'asc' });
 
@@ -141,7 +141,7 @@ const sendMessage = asyncHandler(async (req, res) => {
   });
 
   // Populate sender details for the response
-  message = await message.populate('sender', 'username profilePicture');
+  message = await message.populate('sender', 'username profilePicture reputation badgeKeys contributorStatus');
 
 
   // Update the conversation's last message
@@ -184,7 +184,7 @@ const findOrCreateConversation = asyncHandler(async (req, res) => {
 
   // Populate participant details for the response
   const populatedConversation = await Conversation.findById(conversation._id)
-    .populate('participants', 'username profilePicture isOnline');
+    .populate('participants', 'username profilePicture isOnline reputation badgeKeys contributorStatus');
 
   res.status(200).json(populatedConversation);
 });
