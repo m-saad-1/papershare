@@ -81,4 +81,24 @@ The repository includes a maintenance script for normalizing paper and note meta
 
 ## Deployment
 
-The repository includes Vercel configuration for the backend API and frontend build output. When deploying, let Vercel build the frontend instead of committing generated `dist/` files.
+The repository includes Vercel configuration for the frontend and API shell.
+
+### Vercel Setup
+
+1. Create a new Vercel project from this GitHub repo.
+2. Keep the project root at the repository root.
+3. Add these environment variables in Vercel:
+   - `MONGODB_URI`
+   - `JWT_SECRET`
+4. Do not set a custom frontend API URL unless you are separating the backend from the same deployment.
+5. Deploy the project and let Vercel run the frontend build automatically.
+
+### Important Caveat
+
+This app uses server-side uploads and realtime features.
+
+- Uploaded files stored on disk will not be persistent on Vercel.
+- If you need upload persistence, move file storage to a service like S3, Cloudinary, or Vercel Blob.
+- Socket-style realtime features are not a great fit for Vercel serverless functions.
+
+If you want the smoothest Vercel setup, host the frontend on Vercel and move the upload-heavy backend pieces to a persistent Node host. If you want, I can help split it that way and give you the exact deployment config.
