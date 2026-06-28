@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import mongoose from "mongoose";
 import dotenv from 'dotenv'; // Import dotenv
 import connectDB from '../config/db.js'; // Import connectDB
 
@@ -8,7 +7,7 @@ import connectDB from '../config/db.js'; // Import connectDB
 dotenv.config();
 
 // Connect to database
-connectDB();
+await connectDB();
 
 const app = express();
 

@@ -13,7 +13,7 @@ import { dirname } from 'path';
 dotenv.config({ path: './backend/.env' });
 
 // Connect to database
-connectDB();
+await connectDB();
 
 const app = express();
 

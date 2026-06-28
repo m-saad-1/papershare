@@ -3,17 +3,33 @@ import mongoose from 'mongoose';
 // Suppress Mongoose deprecation warning
 mongoose.set('strictQuery', true);
 
-const connectDB = async () => {
-  try {
-const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      family: 4, // Force Mongoose to use IPv4
-    });
+const globalForMongoose = globalThis;
+const connectionCache = globalForMongoose.__papershareMongoose || {
+  conn: null,
+  promise: null,
+};
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
+const connectDB = async () => {
+  if (connectionCache.conn) {
+    return connectionCache.conn;
   }
+
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) {
+    throw new Error('MONGODB_URI is not set');
+  }
+
+  if (!connectionCache.promise) {
+    connectionCache.promise = mongoose.connect(mongoUri, {
+      family: 4,
+    });
+  }
+
+  connectionCache.conn = await connectionCache.promise;
+  globalForMongoose.__papershareMongoose = connectionCache;
+
+  console.log(`MongoDB Connected: ${connectionCache.conn.connection.host}`);
+  return connectionCache.conn;
 };
 
 export default connectDB;
