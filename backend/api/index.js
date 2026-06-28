@@ -6,8 +6,10 @@ import connectDB from '../config/db.js'; // Import connectDB
 // Load env vars
 dotenv.config();
 
-// Connect to database
-await connectDB();
+// Connect to database asynchronously
+connectDB().catch(err => {
+  console.error("Initial DB connection failed:", err.message);
+});
 
 const app = express();
 
