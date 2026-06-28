@@ -11,7 +11,8 @@ const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_BASE_URL);
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    // Content-Type will be automatically set by Axios based on the data being sent
+    'Cache-Control': 'no-cache',
+    Pragma: 'no-cache',
   },
   // withCredentials: true, // Use this if you need to send cookies with requests (e.g., for sessions)
 });

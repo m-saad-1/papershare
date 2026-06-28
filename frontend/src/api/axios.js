@@ -8,6 +8,10 @@ const normalizeApiBase = (rawBase) => {
 
 const api = axios.create({
   baseURL: normalizeApiBase(import.meta.env.VITE_API_BASE_URL),
+  headers: {
+    'Cache-Control': 'no-cache',
+    Pragma: 'no-cache',
+  },
   withCredentials: true,
 });
 
