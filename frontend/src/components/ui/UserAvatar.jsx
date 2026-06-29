@@ -14,8 +14,8 @@ const UserAvatar = ({ user, className, alt }) => {
       return getInitialsAvatar();
     }
     
-    // If it's already an absolute URL (like ui-avatars), return it
-    if (user.profilePicture.startsWith('http')) {
+    // If it's already an absolute URL (like ui-avatars) or a local preview blob, return it
+    if (user.profilePicture.startsWith('http') || user.profilePicture.startsWith('blob:')) {
       return user.profilePicture;
     }
 
