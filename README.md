@@ -1,104 +1,103 @@
-# PaperShare
+<div align="center">
+  <div style="background-color: #2563eb; width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+  </div>
+  
+  <h1>PaperShare</h1>
+  <p><strong>The Ultimate Academic Resource Sharing Platform</strong></p>
 
-PaperShare is a full-stack study-content marketplace for sharing papers, notes, and academic resources. The repository is split into a Node/Express backend and a Vite/React frontend.
+  <p>
+    <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+    <img src="https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" alt="Vite" />
+    <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js" />
+    <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+    <img src="https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=Cloudinary&logoColor=white" alt="Cloudinary" />
+  </p>
+</div>
 
-## Project Structure
+<br />
 
-- `backend/` - Express API, MongoDB models, routes, middleware, services, and upload handling
-- `frontend/` - React client, UI components, pages, and Vite build config
-- `files/` - Supporting static documents used by the project
-- `uploads/` - Runtime upload storage used by the app
-- `vercel.json` - Deployment routing for the monorepo
+**PaperShare** is a full-stack, dynamic marketplace built for students, educators, and researchers to share past papers, comprehensive study notes, and critical academic resources. By heavily emphasizing community-driven content, reputation scores, and real-time interactions, PaperShare aims to democratize academic knowledge.
 
-## Tech Stack
+---
 
-- Backend: Node.js, Express, MongoDB, Mongoose
-- Frontend: React, Vite, Tailwind CSS
-- Auth and utilities: JWT, bcryptjs, multer, socket.io
+## 🚀 Key Features
 
-## Prerequisites
+* **📚 Resource Library**: Upload, search, and download past academic papers and study notes categorized by university, department, and course.
+* **☁️ Cloud Storage**: Secure and permanent file storage for PDFs and profile pictures powered by Cloudinary.
+* **🏆 Gamified Reputation**: Earn reputation points and unique badges by contributing helpful resources and receiving upvotes from the community.
+* **💬 Real-Time Chat**: Connect and collaborate with peers and mentors through an integrated messaging system.
+* **⚡ Blazing Fast**: Route-based code-splitting on the frontend ensures near-instantaneous load times and a highly responsive user experience.
+* **🛡️ Admin Moderation**: Powerful administrative tools for reviewing pending uploads, managing user reports, and keeping the platform clean.
 
-- Node.js 18+ recommended
-- npm
-- MongoDB Atlas or a reachable MongoDB instance
+---
 
-## Environment Variables
+## 💻 Tech Stack
 
-Backend configuration lives in `backend/.env`.
+* **Frontend**: React, Vite, Tailwind CSS, Lucide Icons, React Router
+* **Backend**: Node.js, Express.js
+* **Database**: MongoDB (Mongoose)
+* **Storage**: Cloudinary (for persistent serverless file uploads)
+* **Authentication**: JSON Web Tokens (JWT) & bcryptjs
+* **Realtime**: Socket.io
 
-Required values:
+---
 
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `PORT` is optional; defaults to `5002`
+## 🛠️ Local Development
 
-Frontend configuration uses Vite env files:
+### Prerequisites
 
-- `frontend/.env.development`
-- `frontend/.env.production`
+* Node.js 18+ recommended
+* npm or yarn
+* MongoDB Atlas Cluster (or local MongoDB instance)
+* Cloudinary Account
 
-## Run Locally
+### 1. Environment Variables
 
-Start the backend:
+Create a `.env` file in the `backend/` directory with the following variables:
 
+```env
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_super_secret_jwt_key
+PORT=5002
+
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+```
+
+### 2. Run the App
+
+Install dependencies and start the backend:
 ```bash
+npm install
 npm start
 ```
 
-Start the frontend from the repo root:
-
+In a new terminal, start the frontend development server:
 ```bash
 npm run dev:frontend
 ```
 
-Open the frontend at the URL printed by Vite, usually `http://localhost:5173`.
+Open your browser and navigate to `http://localhost:5173`.
 
-## Build
+---
 
-Build the frontend:
+## ☁️ Deployment (Vercel)
 
-```bash
-npm run build:frontend
-```
+PaperShare is fully optimized for serverless deployment on Vercel.
 
-Preview the frontend build:
+1. Create a new project in Vercel and import this repository.
+2. Keep the **Framework Preset** as Vite.
+3. In the **Environment Variables** section, add your critical backend secrets:
+   * `MONGODB_URI`
+   * `JWT_SECRET`
+   * `CLOUDINARY_CLOUD_NAME`
+   * `CLOUDINARY_API_KEY`
+   * `CLOUDINARY_API_SECRET`
+4. Click **Deploy**. Vercel will automatically build the frontend and map the `/api` routes to your Express backend functions.
 
-```bash
-npm run preview:frontend
-```
-
-## Data Maintenance
-
-The repository includes a maintenance script for normalizing paper and note metadata:
-
-- `backend/scripts/normalize-content-data.mjs`
-
-## Notes
-
-- The backend serves uploaded files from `backend/uploads/`.
-- Build artifacts and local logs are ignored so the repository stays source-focused.
-- If MongoDB Atlas blocks access, confirm the cluster IP allowlist and connection string in `backend/.env`.
-
-## Deployment
-
-The repository includes Vercel configuration for the frontend and API shell.
-
-### Vercel Setup
-
-1. Create a new Vercel project from this GitHub repo.
-2. Keep the project root at the repository root.
-3. Add these environment variables in Vercel:
-   - `MONGODB_URI`
-   - `JWT_SECRET`
-4. Do not set a custom frontend API URL unless you are separating the backend from the same deployment.
-5. Deploy the project and let Vercel run the frontend build automatically.
-
-### Important Caveat
-
-This app uses server-side uploads and realtime features.
-
-- Uploaded files stored on disk will not be persistent on Vercel.
-- If you need upload persistence, move file storage to a service like S3, Cloudinary, or Vercel Blob.
-- Socket-style realtime features are not a great fit for Vercel serverless functions.
-
-If you want the smoothest Vercel setup, host the frontend on Vercel and move the upload-heavy backend pieces to a persistent Node host. If you want, I can help split it that way and give you the exact deployment config.
+*(Note: Because Vercel uses ephemeral file systems, Cloudinary is strictly required in production for user avatars, PDF uploads, and chat attachments to persist.)*
