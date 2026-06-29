@@ -6,23 +6,10 @@ import multer from 'multer';
 import path from 'path';
 import crypto from 'crypto';
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Ensure the 'uploads' directory exists
-    // In a real app, you might want to create it if it doesn't exist.
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    // A more robust way to generate a unique filename
-    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
-    const extension = path.extname(file.originalname);
-    cb(null, `attachment-${uniqueSuffix}${extension}`);
-  },
-});
+import { cloudinaryStorage } from '../config/cloudinary.js';
 
 const upload = multer({
-  storage: storage,
+  storage: cloudinaryStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
   fileFilter: (req, file, cb) => {
     // Define allowed file types
@@ -125,9 +112,8 @@ const sendMessage = asyncHandler(async (req, res) => {
   let fileName = null;
 
   if (req.file) {
-    // In the Message model, we store the path relative to the uploads folder
-    // The base URL is prepended on the frontend.
-    fileUrl = `uploads/${req.file.filename}`;
+    // In the Message model, we store the path which is now the Cloudinary URL
+    fileUrl = req.file.path;
     fileName = req.file.originalname;
   }
 

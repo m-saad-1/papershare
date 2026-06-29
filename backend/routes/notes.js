@@ -12,13 +12,7 @@ import { syncContributorStatus } from '../services/contributorStatusService.js';
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'note-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+import { cloudinaryStorage } from '../config/cloudinary.js';
 
 const allowedMimetypes = [
   'application/pdf',
@@ -37,7 +31,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-  storage,
+  storage: cloudinaryStorage,
   fileFilter,
   limits: {
     fileSize: 15 * 1024 * 1024,
@@ -213,7 +207,7 @@ router.get('/:id', softProtect, async (req, res) => {
 
     return res.json({
       note,
-      fileUrl: note.file?.filename ? `/uploads/${note.file.filename}` : null,
+      fileUrl: note.file?.path || (note.file?.filename ? `/api/uploads/${note.file.filename}` : null),
     });
   } catch (error) {
     console.error('Get note details error:', error);
@@ -284,7 +278,7 @@ router.post('/:id/download', protect, async (req, res) => {
 
     return res.json({
       message: 'Download counted',
-      fileUrl: `/uploads/${note.file?.filename}`,
+      fileUrl: note.file?.path || `/api/uploads/${note.file?.filename}`,
       downloadCount: note.downloadCount,
     });
   } catch (error) {

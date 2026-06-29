@@ -64,16 +64,7 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'paper-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+import { cloudinaryStorage } from '../config/cloudinary.js';
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype === 'application/pdf') {
@@ -84,7 +75,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 const upload = multer({
-  storage: storage,
+  storage: cloudinaryStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
@@ -760,7 +751,16 @@ router.get('/:id/download', protect, enforceDownloadQuota, async (req, res) => {
       await evaluateAndGrantBadges(paper.uploader);
     }
 
-    res.download(paper.file.path, paper.file.originalName);
+    import('https').then((https) => {
+      https.get(paper.file.path, (fileStream) => {
+        res.setHeader('Content-Type', paper.file.mimetype || 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${paper.file.originalName}"`);
+        fileStream.pipe(res);
+      }).on('error', (err) => {
+        console.error('Error fetching file from Cloudinary:', err);
+        res.status(500).json({ message: 'Error streaming file from cloud storage' });
+      });
+    });
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({ message: 'Server error during download' });
