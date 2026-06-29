@@ -752,6 +752,10 @@ router.get('/:id/download', protect, enforceDownloadQuota, async (req, res) => {
       await evaluateAndGrantBadges(paper.uploader);
     }
 
+    if (!paper.file.path.startsWith('http')) {
+      return res.status(404).json({ message: 'This legacy file is no longer available on the server. Please re-upload.' });
+    }
+
     https.get(paper.file.path, (fileStream) => {
       res.setHeader('Content-Type', paper.file.mimetype || 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${paper.file.originalName}"`);
