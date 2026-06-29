@@ -4,11 +4,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Only configure if variables are present to avoid fatal crashes on startup
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+} else {
+  console.warn("⚠️ CLOUDINARY CREDENTIALS MISSING: File uploads will fail.");
+}
 
 // Configure standard storage for general uploads (like PDFs, Notes, Papers)
 export const cloudinaryStorage = new CloudinaryStorage({
