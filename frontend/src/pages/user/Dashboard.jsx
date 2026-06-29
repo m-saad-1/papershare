@@ -35,6 +35,7 @@ import {
 import { Crown, TrendingUp } from 'lucide-react';
 import { ThumbsUp } from 'lucide-react';
 import { StyledBadge } from '@/components/badges/StyledBadge';
+import UserAvatar from '@/components/ui/UserAvatar.jsx';
 
 const STATUS_LEVELS = [
   { key: 'Student', label: 'Student', minReputation: 0, minUploads: 0 },
@@ -958,17 +959,10 @@ const Dashboard = () => {
             <div className="hidden lg:block lg:col-span-1">
               <div className="card p-4 sm:p-6 mb-6">
                 <div className="flex items-center space-x-3 mb-6">
-                  {profilePicturePreview ? (
-                    <img
-                      src={profilePicturePreview}
-                      alt="Profile"
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                      <User className="h-6 w-6 text-primary-600" />
-                    </div>
-                  )}
+                  <UserAvatar
+                    user={{ ...user, profilePicture: profilePicturePreview || user?.profilePicture }}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
 
                   <div>
                     <p className="font-semibold text-gray-900">{user?.username}</p>
@@ -1020,17 +1014,10 @@ const Dashboard = () => {
                   <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        {profilePicturePreview ? (
-                          <img
-                            src={profilePicturePreview}
-                            alt="Profile"
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                            <User className="h-5 w-5 text-primary-600" />
-                          </div>
-                        )}
+                        <UserAvatar
+                          user={{ ...user, profilePicture: profilePicturePreview || user?.profilePicture }}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
                         <div>
                           <p className="font-semibold text-gray-900">{user?.username}</p>
                           <p className="text-xs text-gray-600">{user?.university}</p>
@@ -2141,17 +2128,11 @@ const Dashboard = () => {
                     accept="image/*"
                     onChange={handleProfilePictureChange}
                   />
-                  {profilePicturePreview ? (
-                    <img
-                      src={profilePicturePreview}
-                      alt="Profile Preview"
-                      className="w-20 h-20 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="w-10 h-10 text-gray-500" />
-                    </div>
-                  )}
+                  <UserAvatar
+                    user={{ ...user, profilePicture: profilePicturePreview || user?.profilePicture }}
+                    className="w-20 h-20 rounded-full object-cover"
+                    alt="Profile Preview"
+                  />
                   <div className='flex flex-col gap-2'>
                     <button
                       type="button"

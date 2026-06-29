@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
@@ -6,31 +6,31 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import Home from './pages/Home';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import SearchPapers from './pages/papers/SearchPapers';
-import PaperDetails from './pages/papers/PaperDetails';
-import UploadPaper from './pages/papers/UploadPaper';
-import RequestPaper from './pages/papers/RequestPaper';
-import Universities from './pages/universities/Universities';
-import UniversityCommunity from './pages/universities/UniversityCommunity';
-import AcademicIntegrity from './pages/AcademicIntegrity';
-import UserDashboard from './pages/user/Dashboard';
-import EditPaper from './pages/user/EditPaper';
-import AdminPanel from './pages/admin/AdminPanel';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import ScrollToTop from './components/layout/ScrollToTop';
-import Chat from './pages/user/Chat';
-import UserProfilePage from './pages/user/UserProfile';
-import Leaderboard from './pages/user/Leaderboard';
-import ContactUs from './pages/ContactUs';
 
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import HelpCenter from './pages/HelpCenter';
-import StudyHub from './pages/study/StudyHub';
-import NoteDetails from './pages/study/NoteDetails';
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
+const SearchPapers = lazy(() => import('./pages/papers/SearchPapers'));
+const PaperDetails = lazy(() => import('./pages/papers/PaperDetails'));
+const UploadPaper = lazy(() => import('./pages/papers/UploadPaper'));
+const RequestPaper = lazy(() => import('./pages/papers/RequestPaper'));
+const Universities = lazy(() => import('./pages/universities/Universities'));
+const UniversityCommunity = lazy(() => import('./pages/universities/UniversityCommunity'));
+const AcademicIntegrity = lazy(() => import('./pages/AcademicIntegrity'));
+const UserDashboard = lazy(() => import('./pages/user/Dashboard'));
+const EditPaper = lazy(() => import('./pages/user/EditPaper'));
+const AdminPanel = lazy(() => import('./pages/admin/AdminPanel'));
+const Chat = lazy(() => import('./pages/user/Chat'));
+const UserProfilePage = lazy(() => import('./pages/user/UserProfile'));
+const Leaderboard = lazy(() => import('./pages/user/Leaderboard'));
+const ContactUs = lazy(() => import('./pages/ContactUs'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const HelpCenter = lazy(() => import('./pages/HelpCenter'));
+const StudyHub = lazy(() => import('./pages/study/StudyHub'));
+const NoteDetails = lazy(() => import('./pages/study/NoteDetails'));
 
 
 
@@ -52,79 +52,85 @@ const AppContent = () => {
       <Navbar />
       {/* Define navbar height as a CSS variable for child components to use */}
       <main className="flex-grow flex flex-col pt-16 pb-16 md:pb-0" style={{ '--navbar-height': '64px' }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/papers" element={<SearchPapers />} />
-          <Route path="/academic-integrity" element={<AcademicIntegrity />} />
-          <Route path="/universities" element={<Universities />} />
-          <Route path="/universities/:universityName" element={<UniversityCommunity />} />
-          <Route path="/papers/:id" element={<PaperDetails />} />
-          <Route path="/requests" element={<RequestPaper />} />
-          <Route path="/profile/:userId" element={<UserProfilePage />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/contact" element={<ContactUs />} />
+        <Suspense fallback={
+          <div className="flex min-h-[50vh] items-center justify-center">
+            <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/papers" element={<SearchPapers />} />
+            <Route path="/academic-integrity" element={<AcademicIntegrity />} />
+            <Route path="/universities" element={<Universities />} />
+            <Route path="/universities/:universityName" element={<UniversityCommunity />} />
+            <Route path="/papers/:id" element={<PaperDetails />} />
+            <Route path="/requests" element={<RequestPaper />} />
+            <Route path="/profile/:userId" element={<UserProfilePage />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/contact" element={<ContactUs />} />
 
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/help" element={<HelpCenter />} />
-          <Route path="/help-center" element={<HelpCenter />} />
-          <Route path="/notes" element={<StudyHub />} />
-          <Route path="/notes/:id" element={<NoteDetails />} />
-          <Route path="/study" element={<StudyHub />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/help-center" element={<HelpCenter />} />
+            <Route path="/notes" element={<StudyHub />} />
+            <Route path="/notes/:id" element={<NoteDetails />} />
+            <Route path="/study" element={<StudyHub />} />
 
 
-          <Route 
-            path="/upload" 
-            element={
-              <ProtectedRoute>
-                <UploadPaper />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <UserDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/edit-paper/:paperId" 
-            element={
-              <ProtectedRoute>
-                <EditPaper />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin" 
-            element={
-              <AdminRoute>
-                <AdminPanel />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/admin/moderation" 
-            element={
-              <AdminRoute>
-                <Navigate to="/admin" replace />
-              </AdminRoute>
-            } 
-          />
-          <Route 
-            path="/messages/:recipientId?" 
-            element={
-              <ProtectedRoute>
-                <Chat /> 
-              </ProtectedRoute>
-            } 
-          />
-          {/* Add other routes for your application here */}
-        </Routes>
+            <Route 
+              path="/upload" 
+              element={
+                <ProtectedRoute>
+                  <UploadPaper />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <UserDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/edit-paper/:paperId" 
+              element={
+                <ProtectedRoute>
+                  <EditPaper />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <AdminRoute>
+                  <AdminPanel />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin/moderation" 
+              element={
+                <AdminRoute>
+                  <Navigate to="/admin" replace />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/messages/:recipientId?" 
+              element={
+                <ProtectedRoute>
+                  <Chat /> 
+                </ProtectedRoute>
+              } 
+            />
+            {/* Add other routes for your application here */}
+          </Routes>
+        </Suspense>
       </main>
       {!shouldHideFooter && <Footer />}
       <Toaster 

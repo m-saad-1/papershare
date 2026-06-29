@@ -9,6 +9,7 @@ import { mapBadgeKeys } from '@/utils/badges';
 import { StyledBadge } from '@/components/badges/StyledBadge';
 import { getContributorStatusMeta } from '@/utils/contributorStatus';
 import ReportContentModal from '@/components/reports/ReportContentModal';
+import UserAvatar from '@/components/ui/UserAvatar.jsx';
 
 const NoteDetails = () => {
   const { id } = useParams();
@@ -199,13 +200,10 @@ const NoteDetails = () => {
               <div className="card p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Uploaded By</h3>
                 <div className="flex items-start space-x-3">
-                  {note.uploader?.profilePicture ? (
-                    <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${note.uploader.profilePicture.replace(/\\/g, '/')}`} alt={note.uploader.username} className="w-10 h-10 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                      <User className="h-5 w-5 text-primary-600" />
-                    </div>
-                  )}
+                  <UserAvatar
+                    user={note.uploader}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Link to={`/profile/${note.uploader?._id}`} className="font-medium text-gray-900 hover:text-primary-600 hover:underline line-clamp-1 min-w-0 flex-1">

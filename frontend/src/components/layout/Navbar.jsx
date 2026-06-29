@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.jsx';
 import apiClient from '@/api/axios';
+import UserAvatar from '@/components/ui/UserAvatar.jsx';
 import {
   Home,
   Search,
@@ -120,20 +121,10 @@ const Navbar = () => {
                     className="md:hidden min-h-touch min-w-touch flex items-center justify-center"
                     aria-label="Open profile"
                   >
-                    {user?.profilePicture ? (
-                      <img
-                        src={`${apiClient.defaults.baseURL.replace('/api', '')}/${user.profilePicture.replace(/\\/g, '/')}`}
-                        alt="Profile avatar"
-                        className="h-9 w-9 rounded-full object-cover border border-gray-200"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-primary-700 border border-primary-200">
-                      <User className="h-4 w-4" />
-                    </span>
+                    <UserAvatar 
+                      user={user} 
+                      className="h-9 w-9 rounded-full object-cover border border-gray-200" 
+                    />
                   </Link>
                 </>
               ) : (
@@ -212,20 +203,10 @@ const Navbar = () => {
                   className="flex items-center gap-3 min-h-touch"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                    {user?.profilePicture ? (
-                      <img
-                        src={`${apiClient.defaults.baseURL.replace('/api', '')}/${user.profilePicture.replace(/\\/g, '/')}`}
-                        alt="Profile avatar"
-                        className="h-10 w-10 rounded-full object-cover border border-gray-200"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-700 border border-primary-200 hidden">
-                      <User className="h-5 w-5" />
-                    </span>
+                    <UserAvatar 
+                      user={user} 
+                      className="h-10 w-10 rounded-full object-cover border border-gray-200" 
+                    />
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{isAdmin ? 'Admin Account' : user?.username}</p>
                       <p className="text-xs text-gray-500">{isAdmin ? 'Open admin panel' : 'Open dashboard'}</p>

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { mapBadgeKeys } from '@/utils/badges';
 import { StyledBadge } from '@/components/badges/StyledBadge';
+import UserAvatar from '@/components/ui/UserAvatar.jsx';
 
 const fetchUser = async (userId) => {
   const { data } = await apiClient.get(`/users/${userId}`);
@@ -139,14 +140,8 @@ const UserProfile = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-start gap-3 sm:gap-4">
               {/* Avatar */}
-              <div className="relative">
-                {user?.profilePicture ? (
-                  <img src={`${apiClient.defaults.baseURL.replace('/api', '')}/${user.profilePicture.replace(/\\/g, '/')}`} alt={user.username} className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover shadow-md" />
-                ) : (
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-2xl md:text-3xl shadow-md">
-                    {user?.username?.charAt(0).toUpperCase()}
-                  </div>
-                )}
+              <div className="relative flex-shrink-0">
+                <UserAvatar user={user} className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover shadow-md" />
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 md:w-7 md:h-7 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
 
@@ -216,9 +211,9 @@ const UserProfile = () => {
           {badgeKeys.length > 0 && (
             <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
               <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Badges</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-0.5">
+              <div className="flex flex-wrap gap-2">
                 {badgeKeys.map((badgeKey) => (
-                  <div key={badgeKey} className="origin-left scale-95">
+                  <div key={badgeKey} className="origin-left">
                     <StyledBadge badgeKey={badgeKey} size="sm" />
                   </div>
                 ))}

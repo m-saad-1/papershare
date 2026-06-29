@@ -18,7 +18,8 @@ import toast from 'react-hot-toast';
 import apiClient from '@/apiClient';
 import { format } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
-import { LazyAvatar } from '@/components/ui/LazyImage';
+import { LazyImage } from '@/components/ui/LazyImage';
+import UserAvatar from '@/components/ui/UserAvatar.jsx';
 
 // Fetch conversations list for sidebar
 const fetchConversations = async () => {
@@ -326,12 +327,9 @@ const Chat = () => {
                   >
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
-                      <LazyAvatar
-                        src={getAvatarUrl(otherParticipant.profilePicture)}
-                        alt={otherParticipant.username}
-                        size="md"
-                        fallbackInitial={otherParticipant.username?.charAt(0).toUpperCase()}
-                        className="shadow-sm"
+                      <UserAvatar
+                        user={otherParticipant}
+                        className="w-10 h-10 shadow-sm rounded-full object-cover"
                       />
                       {otherParticipant.isOnline && (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
@@ -397,12 +395,9 @@ const Chat = () => {
           </button>
           {recipient ? (
             <>
-              <LazyAvatar
-                src={getAvatarUrl(recipient.profilePicture)}
-                alt={recipient.username}
-                size="sm"
-                fallbackInitial={recipient.username?.charAt(0).toUpperCase()}
-                className="mr-3 shadow-sm"
+              <UserAvatar
+                user={recipient}
+                className="w-8 h-8 mr-3 shadow-sm rounded-full object-cover"
               />
               <div className="flex-1">
                 <Link to={`/profile/${recipient._id}`} className="font-semibold text-fluid-sm text-gray-900 hover:text-primary-600 transition-colors">
@@ -447,12 +442,9 @@ const Chat = () => {
               <div className="hidden lg:flex items-center justify-between p-3 sm:p-4 bg-white border-b border-gray-100 shadow-sm">
                 <div className="flex items-center">
                   <div className="relative mr-3">
-                    <LazyAvatar
-                      src={getAvatarUrl(recipient?.profilePicture)}
-                      alt={recipient?.username}
-                      size="md"
-                      fallbackInitial={recipient?.username?.charAt(0).toUpperCase()}
-                      className="shadow-sm"
+                    <UserAvatar
+                      user={recipient}
+                      className="w-10 h-10 shadow-sm rounded-full object-cover"
                     />
                     {recipient?.isOnline && (
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
@@ -516,12 +508,9 @@ const Chat = () => {
                                   {/* Avatar for received messages */}
                                   {!isSender && (
                                     <div className="w-7 h-7 flex-shrink-0">
-                                      <LazyAvatar
-                                        src={getAvatarUrl(msg.sender?.profilePicture)}
-                                        alt={msg.sender?.username}
-                                        size="xs"
-                                        fallbackInitial={msg.sender?.username?.charAt(0).toUpperCase()}
-                                        className="w-full h-full shadow-sm"
+                                      <UserAvatar
+                                        user={msg.sender}
+                                        className="w-full h-full shadow-sm rounded-full object-cover"
                                       />
                                     </div>
                                   )}

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Crown, Medal, Trophy, Filter, Building2, GraduationCap, Upload, Download, ThumbsUp, Star, Zap } from 'lucide-react';
 import apiClient from '@/apiClient';
 import { getContributorStatusMeta } from '@/utils/contributorStatus';
+import UserAvatar from '@/components/ui/UserAvatar.jsx';
 
 const scopes = [
   { value: 'global', label: 'Global' },
@@ -281,17 +282,10 @@ const Leaderboard = () => {
 
                     {/* User Info */}
                     <div className="sm:col-span-4 flex items-center gap-3">
-                      {u.profilePicture ? (
-                        <img
-                          src={`${apiClient.defaults.baseURL.replace('/api', '')}/${u.profilePicture.replace(/\\/g, '/')}`}
-                          alt={u.username}
-                          className="w-12 h-12 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-semibold text-fluid-base sm:text-fluid-sm flex-shrink-0">
-                          {u.username?.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      <UserAvatar 
+                        user={u} 
+                        className="w-12 h-12 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0" 
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Link
