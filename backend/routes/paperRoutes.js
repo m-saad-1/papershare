@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
+import https from 'https';
 import { body, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
 import Paper from '../models/paper.js';
@@ -751,15 +752,13 @@ router.get('/:id/download', protect, enforceDownloadQuota, async (req, res) => {
       await evaluateAndGrantBadges(paper.uploader);
     }
 
-    import('https').then((https) => {
-      https.get(paper.file.path, (fileStream) => {
-        res.setHeader('Content-Type', paper.file.mimetype || 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${paper.file.originalName}"`);
-        fileStream.pipe(res);
-      }).on('error', (err) => {
-        console.error('Error fetching file from Cloudinary:', err);
-        res.status(500).json({ message: 'Error streaming file from cloud storage' });
-      });
+    https.get(paper.file.path, (fileStream) => {
+      res.setHeader('Content-Type', paper.file.mimetype || 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${paper.file.originalName}"`);
+      fileStream.pipe(res);
+    }).on('error', (err) => {
+      console.error('Error fetching file from Cloudinary:', err);
+      res.status(500).json({ message: 'Error streaming file from cloud storage' });
     });
   } catch (error) {
     console.error('Download error:', error);
