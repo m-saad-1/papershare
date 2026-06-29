@@ -1,10 +1,15 @@
 import express from "express";
 import cors from "cors";
-import dotenv from 'dotenv';
-import connectDB from '../config/db.js';
+import dotenv from 'dotenv'; // Import dotenv
+import connectDB from '../config/db.js'; // Import connectDB
 
 // Load env vars
 dotenv.config();
+
+// Connect to database asynchronously
+connectDB().catch(err => {
+  console.error("Initial DB connection failed:", err.message);
+});
 
 const app = express();
 
@@ -26,29 +31,17 @@ app.options("*", cors());
 
 app.use(express.json());
 
-// Serverless DB Connection Middleware
-// Ensures the database is fully connected before executing any route logic
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    console.error("Critical DB Connection Error:", err);
-    res.status(500).json({ message: "Database connection failed. Please try again." });
-  }
-});
-
 // health check
 app.get("/api", (req, res) => {
   res.json({ status: "API OK" });
 });
 
 // routes
-import authRoutes from "../routes/auth.js";
-import userRoutes from "../routes/userRoutes.js";
-import paperRoutes from "../routes/paperRoutes.js";
-import adminRoutes from "../routes/admin.js";
-import messageRoutes from "../routes/messages.js";
+import authRoutes from "../routes/auth.js"; // Changed path
+import userRoutes from "../routes/userRoutes.js"; // Changed path
+import paperRoutes from "../routes/paperRoutes.js"; // Changed path
+import adminRoutes from "../routes/admin.js"; // Changed path
+import messageRoutes from "../routes/messages.js"; // Changed path
 import universitiesRoutes from "../routes/universities.js";
 import paperRequestRoutes from "../routes/paperRequests.js";
 import trendingRoutes from "../routes/trending.js";

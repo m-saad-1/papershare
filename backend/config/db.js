@@ -20,7 +20,9 @@ const connectDB = async () => {
   }
 
   if (!connectionCache.promise) {
-    connectionCache.promise = mongoose.connect(mongoUri);
+    connectionCache.promise = mongoose.connect(mongoUri, {
+      family: 4,
+    });
   }
 
   connectionCache.conn = await connectionCache.promise;
